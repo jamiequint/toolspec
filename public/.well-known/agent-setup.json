@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "product": "toolspec-skill",
+  "bootstrap": {
+    "type": "command",
+    "command": "npx -y @toolspec/agent-bootstrap@latest install --client auto"
+  },
+  "fallback_bootstrap": {
+    "type": "command",
+    "command": "curl -fsSL https://toolspec.dev/agent/install.sh | bash"
+  },
+  "verify_command": "toolspec-agent verify",
+  "uninstall_command": "toolspec-agent uninstall",
+  "docs_url": "https://toolspec.dev/agent/setup.txt",
+  "privacy": {
+    "sanitize_before_submit": true,
+    "allowlist_enforced": true,
+    "human_docs_url": "https://toolspec.dev/humans/privacy"
+  }
+}

@@ -1,0 +1,126 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --fg: #0f172a;
+  --muted: #475569;
+  --card: #ffffff;
+  --line: #dce3ef;
+  --accent: #0ea5e9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at top, #eef6ff, var(--bg) 60%);
+  color: var(--fg);
+  font-family: Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+a {
+  color: #0369a1;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 12px;
+}
+
+p {
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+}
+
+.grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.code {
+  background: #0b1020;
+  color: #cde9ff;
+  border-radius: 10px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 13px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 8px 12px;
+}
+
+.kv dt {
+  color: var(--muted);
+}
+
+.kv dd {
+  margin: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.badge.warn {
+  color: #92400e;
+  border-color: #fbbf24;
+  background: #fffbeb;
+}
+
+.badge.good {
+  color: #065f46;
+  border-color: #34d399;
+  background: #ecfdf5;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  padding: 8px;
+  vertical-align: top;
+}
+
+.small {
+  font-size: 12px;
+  color: var(--muted);
+}
