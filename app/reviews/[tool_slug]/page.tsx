@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getReviewBySlug, getStaleness } from "@/lib/reviews";
+import { getStaleness } from "@/lib/reviews";
+import { getReviewBySlug } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
-export default function ReviewDetailPage({
+export default async function ReviewDetailPage({
   params
 }: {
   params: { tool_slug: string };
 }) {
-  const review = getReviewBySlug(params.tool_slug);
+  const review = await getReviewBySlug(params.tool_slug);
   if (!review) {
     notFound();
   }

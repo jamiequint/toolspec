@@ -282,6 +282,30 @@ a.review-card:hover {
   color: var(--fg);
 }
 
+/* ── Why grid ─────────────────────────────────── */
+
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.why-item {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.why-item strong {
+  font-size: 13px;
+}
+
+.why-item p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 /* ── Explore list ─────────────────────────────── */
 
 .explore-list {
@@ -304,6 +328,30 @@ a.review-card:hover {
   font-size: 12px;
   color: var(--muted);
   margin-top: 2px;
+}
+
+/* ── Install hero ─────────────────────────────── */
+
+.install-hero {
+  background: linear-gradient(135deg, #0b1020 0%, #162033 100%);
+  color: #cde9ff;
+  border: 1px solid #1e3a5f;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.install-hero .code {
+  margin: 10px 0;
+  border: 1px solid #1e3a5f;
+}
+
+.install-hero .button {
+  margin-bottom: 0;
+}
+
+.install-hero p {
+  color: #8ebbdb;
 }
 
 /* ── Get started block ────────────────────────── */

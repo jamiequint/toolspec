@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const SETUP_TEXT = "Set up https://toolspec.dev";
+const SETUP_TEXT = "Go to https://toolspec.dev and install it";
 
 export default function GetStartedCopy() {
   const [copied, setCopied] = useState(false);

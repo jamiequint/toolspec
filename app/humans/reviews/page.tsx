@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { getAllReviews, getStaleness } from "@/lib/reviews";
+import { getStaleness } from "@/lib/reviews";
+import { getAllReviews } from "@/lib/review-db";
+
+export const dynamic = "force-dynamic";
 
 function recBadgeClass(rec: string) {
   if (rec === "recommended") return "badge good";
@@ -14,8 +17,8 @@ function confBadgeClass(conf: string) {
   return "badge";
 }
 
-export default function HumansReviewsPage() {
-  const reviews = getAllReviews();
+export default async function HumansReviewsPage() {
+  const reviews = await getAllReviews();
   const now = new Date();
 
   return (

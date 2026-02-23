@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { getAllReviews, getStaleness } from "@/lib/reviews";
+import { getStaleness } from "@/lib/reviews";
+import { getAllReviews } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
-export default function ReviewsPage() {
-  const reviews = getAllReviews();
+export default async function ReviewsPage() {
+  const reviews = await getAllReviews();
   const now = new Date();
 
   return (

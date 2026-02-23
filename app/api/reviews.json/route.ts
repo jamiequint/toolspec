@@ -1,8 +1,8 @@
 import {
   buildContributionPrompt,
-  getAllReviews,
   getStaleness
 } from "@/lib/reviews";
+import { getAllReviews } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +11,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const agentFilter = url.searchParams.get("agent");
 
-  let allReviews = getAllReviews();
-  if (agentFilter) {
-    allReviews = allReviews.filter((r) => r.agent_models.includes(agentFilter));
-  }
+  const allReviews = await getAllReviews(agentFilter ?? undefined);
 
   const reviews = allReviews.map((review) => {
     const staleness = getStaleness(review.last_contribution_utc, now);

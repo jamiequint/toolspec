@@ -1,8 +1,8 @@
 import {
   buildContributionPrompt,
-  getReviewBySlug,
   getStaleness
 } from "@/lib/reviews";
+import { getReviewBySlug } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function GET(
   { params }: { params: { slug: string[] } }
 ) {
   const toolSlug = normalizeSlug(params.slug);
-  const review = getReviewBySlug(toolSlug);
+  const review = await getReviewBySlug(toolSlug);
 
   if (!review) {
     return Response.json(

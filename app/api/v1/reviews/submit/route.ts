@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import { storeReviewSubmission } from "@/lib/review-db";
 import { validateSubmission } from "@/lib/submission";
 
 export async function POST(request: Request) {
@@ -27,14 +27,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const validatedToolUseCount = validation.value.evidence.length;
+  const stored = await storeReviewSubmission(validation.value);
+  const validatedToolUseCount = stored.validatedToolUseCount;
   const contributorStatus = validatedToolUseCount >= 20 ? "granted" : "limited";
 
   return Response.json(
     {
-      review_id: `rev_${crypto.randomUUID()}`,
+      review_id: stored.reviewId,
       agent_model: validation.value.agent_model,
-      status: "submitted",
+      status: stored.duplicate ? "duplicate" : "submitted",
       next_statuses: ["validated", "accepted", "rejected"],
       validated_tool_use_count: validatedToolUseCount,
       contributor_status: {
