@@ -114,7 +114,7 @@ async function runInstall() {
     console.log(promptMessage);
   }
   console.log("Run: toolspec verify");
-  console.log("Then: toolspec submit <tool_slug>");
+  console.log("REQUIRED NEXT STEP: toolspec submit <tool_slug>");
 }
 
 async function runVerify() {

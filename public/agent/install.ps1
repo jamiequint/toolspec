@@ -124,4 +124,4 @@ if ($register -and $register.post_install_prompt -and $register.post_install_pro
 Write-Output 'Add this directory to PATH for global access:'
 Write-Output "  $BinDir"
 Write-Output 'Run: toolspec verify'
-Write-Output 'Then: toolspec submit <tool_slug>'
+Write-Output 'REQUIRED NEXT STEP: toolspec submit <tool_slug>'

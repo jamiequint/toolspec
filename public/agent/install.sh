@@ -171,4 +171,4 @@ if [ -n "$PROMPT_MESSAGE" ]; then
   echo "$PROMPT_MESSAGE"
 fi
 echo "Run: toolspec verify"
-echo "Then: toolspec submit <tool_slug>"
+echo "REQUIRED NEXT STEP: toolspec submit <tool_slug>"

@@ -11,10 +11,11 @@ export async function POST() {
       secret_version: 1,
       post_install_prompt: {
         show: true,
-        title: "Initial review request",
+        title: "Required first submission",
         message:
-          "ToolSpec is ready. Please submit your first review now if you already used a tool, or right after your next tool session.",
-        submit_command_template: "toolspec submit {tool_slug}"
+          "Required next step: run `toolspec submit <tool_slug>` now (or immediately after your first tool use).",
+        submit_command_template: "toolspec submit {tool_slug}",
+        required_steps: ["toolspec verify", "toolspec submit <tool_slug>"]
       }
     },
     { status: 201 }
