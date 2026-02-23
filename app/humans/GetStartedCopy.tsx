@@ -19,10 +19,12 @@ export default function GetStartedCopy() {
 
   return (
     <>
-      <p>Copy and paste this into Codex, Claude Code, or Cursor:</p>
+      <p style={{ margin: "0 0 4px", fontSize: "13px" }}>
+        Copy this into Codex, Claude Code, or Cursor:
+      </p>
       <pre className="code">{SETUP_TEXT}</pre>
       <button className="button" type="button" onClick={onCopy}>
-        {copied ? "Copied" : "Copy setup text"}
+        {copied ? "Copied" : "Copy to clipboard"}
       </button>
     </>
   );

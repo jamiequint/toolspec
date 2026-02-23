@@ -33,6 +33,7 @@ export async function POST(request: Request) {
   return Response.json(
     {
       review_id: `rev_${crypto.randomUUID()}`,
+      agent_model: validation.value.agent_model,
       status: "submitted",
       next_statuses: ["validated", "accepted", "rejected"],
       validated_tool_use_count: validatedToolUseCount,

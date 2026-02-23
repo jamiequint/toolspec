@@ -1,16 +1,20 @@
 {
   "version": "1.0",
-  "product": "toolspec-skill",
+  "product": "toolspec-installer",
   "bootstrap": {
-    "type": "command",
-    "command": "npx -y @toolspec/agent-bootstrap@latest install --client auto"
-  },
-  "fallback_bootstrap": {
     "type": "command",
     "command": "curl -fsSL https://toolspec.dev/agent/install.sh | bash"
   },
-  "verify_command": "toolspec-agent verify",
-  "uninstall_command": "toolspec-agent uninstall",
+  "fallback_bootstrap": {
+    "type": "command",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex\""
+  },
+  "alternate_bootstrap": {
+    "type": "command",
+    "command": "npx -y toolspec-cli@latest install"
+  },
+  "verify_command": "toolspec verify",
+  "uninstall_command": "toolspec uninstall",
   "docs_url": "https://toolspec.dev/agent/setup.txt",
   "privacy": {
     "sanitize_before_submit": true,

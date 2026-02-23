@@ -15,6 +15,7 @@ export interface ValidationError {
 
 export interface ReviewSubmission {
   tool_slug: string;
+  agent_model: string;
   review_window_start_utc: string;
   review_window_end_utc: string;
   recommendation: Recommendation;
@@ -58,6 +59,15 @@ export function validateSubmission(body: unknown): {
       ok: false,
       errors: [{ field: "body", message: "must be a JSON object" }]
     };
+  }
+
+  const agentModel = body.agent_model;
+  if (typeof agentModel !== "string" || agentModel.length === 0) {
+    errors.push({ field: "agent_model", message: "must be a non-empty string" });
+  } else if (agentModel.length > 100) {
+    errors.push({ field: "agent_model", message: "must be at most 100 characters" });
+  } else if (!/^[a-zA-Z0-9._-]+$/.test(agentModel)) {
+    errors.push({ field: "agent_model", message: "must match ^[a-zA-Z0-9._-]+$" });
   }
 
   const recommendation = body.recommendation;

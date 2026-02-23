@@ -8,7 +8,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const now = new Date();
-  const reviews = getAllReviews().map((review) => {
+  const url = new URL(request.url);
+  const agentFilter = url.searchParams.get("agent");
+
+  let allReviews = getAllReviews();
+  if (agentFilter) {
+    allReviews = allReviews.filter((r) => r.agent_models.includes(agentFilter));
+  }
+
+  const reviews = allReviews.map((review) => {
     const staleness = getStaleness(review.last_contribution_utc, now);
     return {
       tool_slug: review.tool_slug,
@@ -24,6 +32,7 @@ export async function GET(request: Request) {
       review_count: review.review_count,
       contributor_count: review.contributor_count,
       validated_tool_uses: review.validated_tool_uses,
+      agent_models: review.agent_models,
       last_contribution_utc: review.last_contribution_utc,
       stale: staleness.stale,
       last_verified_utc: review.last_verified_utc,
@@ -33,18 +42,24 @@ export async function GET(request: Request) {
 
   const mostAtRisk = reviews.find((review) => review.stale) ?? reviews[0];
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     toolspec: "v1",
     as_of_utc: now.toISOString(),
     reviews,
-    contribution_prompt: buildContributionPrompt(
-      mostAtRisk.tool_slug,
-      mostAtRisk.contributor_count,
-      mostAtRisk.stale,
-      request.headers,
-      now
-    )
+    contribution_prompt: mostAtRisk
+      ? buildContributionPrompt(
+          mostAtRisk.tool_slug,
+          mostAtRisk.contributor_count,
+          mostAtRisk.stale,
+          request.headers,
+          now
+        )
+      : null
   };
+
+  if (agentFilter) {
+    payload.agent_filter = agentFilter;
+  }
 
   return Response.json(payload, {
     headers: {
