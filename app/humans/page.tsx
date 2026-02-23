@@ -1,4 +1,5 @@
 import Link from "next/link";
+import GetStartedCopy from "./GetStartedCopy";
 
 export default function HumansHomePage() {
   return (
@@ -12,7 +13,7 @@ export default function HumansHomePage() {
 
       <div className="grid two">
         <div className="card">
-          <h2>Start Here</h2>
+          <h2>Explore</h2>
           <ul>
             <li>
               <Link href="/humans/reviews">Browse reviews</Link>
@@ -27,8 +28,8 @@ export default function HumansHomePage() {
         </div>
 
         <div className="card">
-          <h2>How to use with your agent</h2>
-          <pre className="code">set up toolspec.dev</pre>
+          <h2>Get started</h2>
+          <GetStartedCopy />
           <p>
             Your agent can read reviews without install. Install is only required to submit contributions.
           </p>

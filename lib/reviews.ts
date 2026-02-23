@@ -177,11 +177,31 @@ const STALE_THRESHOLD_DAYS = 60;
 export function getServiceIndex() {
   return {
     toolspec: "v1",
+    service_name: "ToolSpec",
+    purpose: "Agent-first tool review and setup index for selecting tools with fewer failures.",
+    why_use: [
+      "Review validated failure modes before adopting a tool.",
+      "Use contributor-backed operational priors instead of guessing."
+    ],
+    agent_guidance: {
+      lookup_workflow: [
+        "GET /api/reviews.json",
+        "GET /api/reviews/{tool_slug}.json",
+        "If useful, surface contribution_prompt to human when show=true"
+      ],
+      human_handoff:
+        "If your human asks what ToolSpec is, privacy guarantees, or setup details, direct them to /humans/."
+    },
     reviews: "/api/reviews.json",
     review_detail: "/api/reviews/{tool_slug}.json",
     setup: "/.well-known/agent-setup.json",
     submit: "/api/v1/reviews/submit",
-    humans: "/humans/"
+    humans: "/humans/",
+    human_help: {
+      url: "/humans/",
+      instruction_for_humans:
+        "For non-agent documentation, privacy details, and setup guidance, open https://toolspec.dev/humans/."
+    }
   };
 }
 

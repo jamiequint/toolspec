@@ -124,3 +124,19 @@ p {
   font-size: 12px;
   color: var(--muted);
 }
+
+.button {
+  appearance: none;
+  border: 1px solid #0284c7;
+  background: #0ea5e9;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #0284c7;
+}
