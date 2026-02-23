@@ -29,19 +29,77 @@ function Show-Help {
   Write-Output 'ToolSpec CLI'
   Write-Output ''
   Write-Output 'Commands:'
+  Write-Output '  toolspec status'
   Write-Output '  toolspec verify'
   Write-Output '  toolspec submit <tool_slug>'
   Write-Output '  toolspec uninstall'
 }
 
+function Show-StatusAndNextSteps {
+  $requiredCommand = 'toolspec submit <tool_slug>'
+  $requiredMessage = $null
+
+  try {
+    $status = Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/v1/access-status"
+    Write-Output 'ToolSpec status:'
+    $status | ConvertTo-Json -Depth 12
+    Write-Output ''
+
+    if ($status.post_install_required_command) {
+      $requiredCommand = [string]$status.post_install_required_command
+    }
+    if ($status.post_install_required_message) {
+      $requiredMessage = [string]$status.post_install_required_message
+    }
+  } catch {
+    Write-Output 'ToolSpec status unavailable (network/API error).'
+    Write-Output ''
+  }
+
+  if ($requiredMessage) {
+    Write-Output $requiredMessage
+  } else {
+    Write-Output "REQUIRED NEXT STEP: $requiredCommand"
+  }
+
+  try {
+    $reviews = Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/reviews.json"
+    if ($reviews.reviews) {
+      $seen = @{}
+      $examples = @()
+      foreach ($row in $reviews.reviews) {
+        if ($row.tool_slug -and -not $seen.ContainsKey($row.tool_slug)) {
+          $seen[$row.tool_slug] = $true
+          $examples += "toolspec submit $($row.tool_slug)"
+        }
+        if ($examples.Count -ge 5) { break }
+      }
+
+      if ($examples.Count -gt 0) {
+        Write-Output 'Examples:'
+        foreach ($line in $examples) {
+          Write-Output "  - $line"
+        }
+      }
+    }
+  } catch {
+  }
+
+  Write-Output 'Use the tool you just used as <tool_slug>.'
+  Write-Output "Run 'toolspec help' for command reference."
+}
+
 if ($Args.Count -eq 0) {
-  Show-Help
+  Show-StatusAndNextSteps
   exit 0
 }
 
 $command = $Args[0].ToLowerInvariant()
 
 switch ($command) {
+  'status' {
+    Show-StatusAndNextSteps
+  }
   'verify' {
     Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/v1/access-status" | ConvertTo-Json -Depth 12
   }

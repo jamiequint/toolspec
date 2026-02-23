@@ -32,6 +32,7 @@ usage() {
 ToolSpec CLI
 
 Commands:
+  toolspec status
   toolspec verify
   toolspec submit <tool_slug>
   toolspec uninstall
@@ -40,6 +41,107 @@ USAGE
 
 now_utc() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
+extract_required_field() {
+  local json_input="$1"
+  local field_name="$2"
+  if [ -z "$json_input" ] || ! command -v python3 >/dev/null 2>&1; then
+    return 1
+  fi
+
+  TOOLSPEC_JSON="$json_input" python3 - "$field_name" <<'PY'
+import json
+import os
+import sys
+
+field = sys.argv[1]
+try:
+    payload = json.loads(os.environ.get("TOOLSPEC_JSON", "{}"))
+except Exception:
+    sys.exit(0)
+
+value = payload.get(field)
+if isinstance(value, str) and value.strip():
+    print(value.strip())
+PY
+}
+
+print_submit_examples() {
+  local reviews_json="$1"
+  if [ -z "$reviews_json" ] || ! command -v python3 >/dev/null 2>&1; then
+    return 1
+  fi
+
+  TOOLSPEC_JSON="$reviews_json" python3 - <<'PY'
+import json
+import os
+import sys
+
+try:
+    payload = json.loads(os.environ.get("TOOLSPEC_JSON", "{}"))
+except Exception:
+    sys.exit(0)
+
+reviews = payload.get("reviews")
+if not isinstance(reviews, list):
+    sys.exit(0)
+
+seen = set()
+count = 0
+for row in reviews:
+    if not isinstance(row, dict):
+        continue
+    slug = row.get("tool_slug")
+    if not isinstance(slug, str) or not slug or slug in seen:
+        continue
+    seen.add(slug)
+    print(f"toolspec submit {slug}")
+    count += 1
+    if count >= 5:
+        break
+PY
+}
+
+status_and_next_steps() {
+  local status_json="" required_command required_message reviews_json submit_examples
+  required_command="toolspec submit <tool_slug>"
+  required_message=""
+
+  if status_json="$(curl -fsS "$BASE_URL/api/v1/access-status" 2>/dev/null || true)"; then
+    if [ -n "$status_json" ]; then
+      echo "ToolSpec status:"
+      echo "$status_json"
+      echo
+    fi
+  fi
+
+  local extracted_command
+  extracted_command="$(extract_required_field "$status_json" "post_install_required_command" || true)"
+  if [ -n "$extracted_command" ]; then
+    required_command="$extracted_command"
+  fi
+
+  required_message="$(extract_required_field "$status_json" "post_install_required_message" || true)"
+  if [ -n "$required_message" ]; then
+    echo "$required_message"
+  else
+    echo "REQUIRED NEXT STEP: $required_command"
+  fi
+
+  reviews_json="$(curl -fsS "$BASE_URL/api/reviews.json" 2>/dev/null || true)"
+  submit_examples="$(print_submit_examples "$reviews_json" || true)"
+  if [ -n "$submit_examples" ]; then
+    echo "Examples:"
+    while IFS= read -r line; do
+      [ -n "$line" ] && echo "  - $line"
+    done <<EOF
+$submit_examples
+EOF
+  fi
+
+  echo "Use the tool you just used as <tool_slug>."
+  echo "Run 'toolspec help' for command reference."
 }
 
 submit_review() {
@@ -117,8 +219,11 @@ PY
   fi
 }
 
-cmd="${1:-help}"
+cmd="${1:-status}"
 case "$cmd" in
+  status)
+    status_and_next_steps
+    ;;
   verify)
     curl -fsS "$BASE_URL/api/v1/access-status"
     echo

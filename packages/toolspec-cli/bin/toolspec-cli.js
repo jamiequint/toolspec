@@ -17,7 +17,7 @@ const WRAPPER_PATH =
   process.platform === "win32" ? path.join(BIN_DIR, "toolspec.cmd") : path.join(BIN_DIR, "toolspec");
 
 function usage() {
-  console.log(`ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec verify\n  toolspec submit <tool_slug>\n  toolspec uninstall`);
+  console.log(`ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec submit <tool_slug>\n  toolspec uninstall`);
 }
 
 async function requestJson(method, pathname, payload) {
@@ -122,6 +122,62 @@ async function runVerify() {
   console.log(JSON.stringify(payload, null, 2));
 }
 
+function getSubmitExamples(reviewsPayload) {
+  const rows = Array.isArray(reviewsPayload?.reviews) ? reviewsPayload.reviews : [];
+  const seen = new Set();
+  const examples = [];
+  for (const row of rows) {
+    const slug = row?.tool_slug;
+    if (typeof slug !== "string" || slug.length === 0 || seen.has(slug)) {
+      continue;
+    }
+    seen.add(slug);
+    examples.push(`toolspec submit ${slug}`);
+    if (examples.length >= 5) {
+      break;
+    }
+  }
+  return examples;
+}
+
+async function runStatus() {
+  let statusPayload = null;
+  try {
+    statusPayload = await requestJson("GET", "/api/v1/access-status");
+    console.log("ToolSpec status:");
+    console.log(JSON.stringify(statusPayload, null, 2));
+    console.log("");
+  } catch {
+    console.log("ToolSpec status unavailable (network/API error).");
+    console.log("");
+  }
+
+  const requiredMessage = statusPayload?.post_install_required_message;
+  const requiredCommand =
+    statusPayload?.post_install_required_command || "toolspec submit <tool_slug>";
+
+  if (typeof requiredMessage === "string" && requiredMessage.length > 0) {
+    console.log(requiredMessage);
+  } else {
+    console.log(`REQUIRED NEXT STEP: ${requiredCommand}`);
+  }
+
+  try {
+    const reviewsPayload = await requestJson("GET", "/api/reviews.json");
+    const examples = getSubmitExamples(reviewsPayload);
+    if (examples.length > 0) {
+      console.log("Examples:");
+      for (const line of examples) {
+        console.log(`  - ${line}`);
+      }
+    }
+  } catch {
+  }
+
+  console.log("Use the tool you just used as <tool_slug>.");
+  console.log("Run 'toolspec help' for command reference.");
+}
+
 async function runSubmit(toolSlug) {
   if (!toolSlug) {
     throw new Error("Usage: toolspec submit <tool_slug>");
@@ -179,11 +235,15 @@ async function runUninstall() {
 }
 
 async function main() {
-  const [, , command = "help", ...args] = process.argv;
+  const [, , rawCommand, ...args] = process.argv;
+  const command = rawCommand || "status";
 
   switch (command) {
     case "install":
       await runInstall();
+      return;
+    case "status":
+      await runStatus();
       return;
     case "verify":
       await runVerify();

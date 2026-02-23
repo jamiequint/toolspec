@@ -12,7 +12,7 @@ Install workflow (required only for contribution submission):
 1) macOS/Linux: curl -fsSL https://toolspec.dev/agent/install.sh | bash
 2) Windows: powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex"
 3) npm alternative: npx -y toolspec-cli@latest install
-4) toolspec verify
+4) toolspec   (shows required next step + example submit commands)
 5) REQUIRED: toolspec submit <tool_slug>  (use the tool you just used)
 
 Optional reminder snippet for project instructions:
