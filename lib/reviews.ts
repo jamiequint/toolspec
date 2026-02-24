@@ -104,6 +104,8 @@ export function getServiceIndex() {
         "powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex\"",
       npm_alternative: "npx -y toolspec-cli@latest install",
       verify_command: "toolspec verify",
+      approve_command: "toolspec approve",
+      search_example: "toolspec search <keyword>",
       submit_example: "toolspec submit",
       submit_all_prompted_example: "toolspec submit all",
       submit_all_yolo_example: "toolspec submit all --yolo"

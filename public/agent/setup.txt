@@ -8,9 +8,10 @@ Install:
 2) Windows: powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex"
 3) npm alternative: npx -y toolspec-cli@latest install
 4) Installer auto-runs `toolspec status` and prints next steps
-5) REQUIRED: toolspec submit
-6) Optional all-mode review (ask unknown tools one-by-one): toolspec submit all
-7) Optional all-mode include-everything: toolspec submit all --yolo
+5) Installer prepares local review draft automatically (no submission)
+6) REQUIRED: toolspec approve
+7) After approval: toolspec search <keyword>
+8) Optional direct submission modes: toolspec submit | toolspec submit all | toolspec submit all --yolo
 
 API endpoints (after install):
 1) GET https://toolspec.dev/api/reviews.json
@@ -23,3 +24,7 @@ Contribution command:
 - toolspec submit
 - toolspec submit all
 - toolspec submit all --yolo
+
+Approval/search:
+- toolspec approve
+- toolspec search <keyword>

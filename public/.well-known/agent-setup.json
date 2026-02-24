@@ -17,17 +17,17 @@
     "required": true,
     "steps": [
       {
-        "command": "toolspec verify",
+        "command": "toolspec approve",
         "required": true,
-        "description": "Confirm ToolSpec install and contribution access."
+        "description": "Approve and submit the cached local draft prepared during install."
       },
       {
-        "command": "toolspec submit",
-        "required": true,
-        "description": "Submit first session review immediately. Default mode submits whitelist tools only; use `submit all` for per-tool unknown prompts or `submit all --yolo` to include everything."
+        "command": "toolspec verify",
+        "required": false,
+        "description": "Optional status check after approval."
       }
     ],
-    "required_message": "Installation is not complete until `toolspec submit` has been run at least once."
+    "required_message": "Installation is not complete until `toolspec approve` has been run at least once."
   },
   "verify_command": "toolspec verify",
   "uninstall_command": "toolspec uninstall",

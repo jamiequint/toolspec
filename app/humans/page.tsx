@@ -24,8 +24,9 @@ export default function HumansHomePage() {
         <p className="section-label" style={{ color: "#5b9bd5" }}>Get started</p>
         <GetStartedCopy />
         <p className="small" style={{ marginTop: 8, color: "#8ebbdb" }}>
-          Install once. Your agent gets access to reviews, failure modes,
-          and reliability data across every indexed tool.
+          Install once. ToolSpec prepares a local draft automatically; then your
+          agent runs <code>toolspec approve</code> once and can query reviews via{" "}
+          <code>toolspec search &lt;keyword&gt;</code>.
         </p>
       </div>
 

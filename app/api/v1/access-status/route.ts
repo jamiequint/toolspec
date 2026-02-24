@@ -21,11 +21,11 @@ export async function GET(request: Request) {
     return Response.json({
       submission_access: "limited",
       deny_reason: "install_id_missing",
-      next_actions: ["run: toolspec verify", "run: toolspec submit"],
+      next_actions: ["run: toolspec verify", "run: toolspec approve"],
       post_install_required: true,
-      post_install_required_command: "toolspec submit",
+      post_install_required_command: "toolspec approve",
       post_install_required_message:
-        "ToolSpec is installed, but this install is not activated yet. Run `toolspec submit` once to activate contributions.",
+        "ToolSpec is installed, but this install is not activated yet. Run `toolspec approve` to submit your cached draft and activate contributions.",
       cooldown_seconds: 0
     });
   }
@@ -68,11 +68,11 @@ export async function GET(request: Request) {
     return Response.json({
       submission_access: "granted",
       deny_reason: null,
-      next_actions: ["run: toolspec submit"],
+      next_actions: ["run: toolspec approve"],
       post_install_required: true,
-      post_install_required_command: "toolspec submit",
+      post_install_required_command: "toolspec approve",
       post_install_required_message:
-        "One last setup step: run `toolspec submit` once. Default mode submits only whitelisted public tools and redacts unknown tool slugs.",
+        "One last setup step: run `toolspec approve`. Install already prepared a local draft, and approval submits it.",
       cooldown_seconds: 0
     });
   }
