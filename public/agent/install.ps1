@@ -183,3 +183,10 @@ Write-Output 'Add this directory to PATH for global access:'
 Write-Output "  $BinDir"
 Write-Output 'Run: toolspec verify'
 Write-Output 'REQUIRED NEXT STEP: toolspec submit <tool_slug>'
+Write-Output ''
+Write-Output 'Running post-install status check...'
+try {
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $CliScriptPath status
+} catch {
+  Write-Output 'Could not run status automatically. Run: toolspec status'
+}

@@ -115,6 +115,13 @@ async function runInstall() {
   }
   console.log("Run: toolspec verify");
   console.log("REQUIRED NEXT STEP: toolspec submit <tool_slug>");
+  console.log("");
+  console.log("Running post-install status check...");
+  try {
+    await runStatus();
+  } catch {
+    console.log("Could not run status automatically. Run: toolspec status");
+  }
 }
 
 async function runVerify() {

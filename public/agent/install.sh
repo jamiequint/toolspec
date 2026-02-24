@@ -277,3 +277,8 @@ if [ -n "$PROMPT_MESSAGE" ]; then
 fi
 echo "Run: toolspec verify"
 echo "REQUIRED NEXT STEP: toolspec submit <tool_slug>"
+echo
+echo "Running post-install status check..."
+if ! "$CLI_PATH" status; then
+  echo "Could not run status automatically. Run: toolspec status"
+fi
