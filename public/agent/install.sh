@@ -26,6 +26,7 @@ set -euo pipefail
 BASE_URL="${TOOLSPEC_BASE_URL:-https://toolspec.dev}"
 CONFIG_DIR="${TOOLSPEC_CONFIG_DIR:-$HOME/.toolspec}"
 INSTALL_FILE="$CONFIG_DIR/install.json"
+PUBLIC_WHITELIST_JSON='["anthropic","airtable","asana","aws","azure","bigquery","brave","browserbase","cloudflare","confluence","discord","fetch","figma","filesystem","gcp","github","gitlab","google","hubspot","jira","linear","mongodb","mysql","notion","openai","paypal","postgres","redis","salesforce","serpapi","shopify","slack","snowflake","sqlite","stripe","supabase","tavily","twilio","vercel","zendesk"]'
 
 usage() {
   cat <<'USAGE'
@@ -34,13 +35,223 @@ ToolSpec CLI
 Commands:
   toolspec status
   toolspec verify
-  toolspec submit <tool_slug>
+  toolspec submit
+  toolspec submit all
+  toolspec submit all --yolo
   toolspec uninstall
 USAGE
 }
 
 now_utc() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
+get_install_id() {
+  if [ ! -f "$INSTALL_FILE" ] || ! command -v python3 >/dev/null 2>&1; then
+    return 0
+  fi
+
+  python3 - "$INSTALL_FILE" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    payload = json.loads(path.read_text())
+    value = payload.get("install_id")
+    if isinstance(value, str) and value.strip():
+        print(value.strip())
+except Exception:
+    pass
+PY
+}
+
+access_status_url() {
+  local install_id
+  install_id="$(get_install_id || true)"
+  if [ -n "$install_id" ]; then
+    printf '%s/api/v1/access-status?install_id=%s' "$BASE_URL" "$install_id"
+  else
+    printf '%s/api/v1/access-status' "$BASE_URL"
+  fi
+}
+
+json_array_from_csv() {
+  local raw="${1:-}"
+  if [ -z "$raw" ] || ! command -v python3 >/dev/null 2>&1; then
+    echo "[]"
+    return 0
+  fi
+
+  TOOLSPEC_CSV="$raw" python3 - <<'PY'
+import json
+import os
+
+raw = os.environ.get("TOOLSPEC_CSV", "")
+out = []
+seen = set()
+for part in raw.split(","):
+    val = part.strip()
+    if not val or val in seen:
+        continue
+    seen.add(val)
+    out.append(val)
+print(json.dumps(out))
+PY
+}
+
+json_field_csv() {
+  local json_input="${1:-}"
+  local field_name="${2:-}"
+  if [ -z "$json_input" ] || [ -z "$field_name" ] || ! command -v python3 >/dev/null 2>&1; then
+    echo ""
+    return 0
+  fi
+
+  TOOLSPEC_JSON="$json_input" python3 - "$field_name" <<'PY'
+import json
+import os
+import sys
+
+field = sys.argv[1]
+try:
+    payload = json.loads(os.environ.get("TOOLSPEC_JSON", "{}"))
+except Exception:
+    print("")
+    raise SystemExit(0)
+
+arr = payload.get(field)
+if not isinstance(arr, list):
+    print("")
+    raise SystemExit(0)
+
+out = []
+seen = set()
+for val in arr:
+    if isinstance(val, str):
+        s = val.strip()
+        if s and s not in seen:
+            out.append(s)
+            seen.add(s)
+print(",".join(out))
+PY
+}
+
+csv_union() {
+  local csv_a="${1:-}"
+  local csv_b="${2:-}"
+  if ! command -v python3 >/dev/null 2>&1; then
+    if [ -n "$csv_a" ] && [ -n "$csv_b" ]; then
+      echo "$csv_a,$csv_b"
+    elif [ -n "$csv_a" ]; then
+      echo "$csv_a"
+    else
+      echo "$csv_b"
+    fi
+    return 0
+  fi
+
+  TOOLSPEC_A="$csv_a" TOOLSPEC_B="$csv_b" python3 - <<'PY'
+import os
+
+def parse_csv(raw: str):
+    out = []
+    seen = set()
+    for part in raw.split(","):
+        s = part.strip()
+        if not s or s in seen:
+            continue
+        out.append(s)
+        seen.add(s)
+    return out
+
+combined = []
+seen = set()
+for value in parse_csv(os.environ.get("TOOLSPEC_A", "")) + parse_csv(os.environ.get("TOOLSPEC_B", "")):
+    if value in seen:
+        continue
+    seen.add(value)
+    combined.append(value)
+print(",".join(combined))
+PY
+}
+
+csv_count() {
+  local raw="${1:-}"
+  if [ -z "$raw" ] || ! command -v python3 >/dev/null 2>&1; then
+    echo "0"
+    return 0
+  fi
+
+  TOOLSPEC_CSV="$raw" python3 - <<'PY'
+import os
+
+raw = os.environ.get("TOOLSPEC_CSV", "")
+seen = set()
+for part in raw.split(","):
+    s = part.strip()
+    if s:
+        seen.add(s)
+print(len(seen))
+PY
+}
+
+classify_observed_json() {
+  local observed_csv="${1:-}"
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo '{"public":[],"unknown":[]}'
+    return 0
+  fi
+
+  TOOLSPEC_OBSERVED="$observed_csv" TOOLSPEC_WHITELIST="$PUBLIC_WHITELIST_JSON" python3 - <<'PY'
+import json
+import os
+import re
+
+def parse_csv(raw: str):
+    out = []
+    seen = set()
+    for part in raw.split(","):
+        s = part.strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    return out
+
+def candidates(slug: str):
+    raw = slug.strip().lower()
+    if not raw:
+        return set()
+
+    out = {raw}
+    for token in re.split(r"[/:_\\\-.@]+", raw):
+        if token:
+            out.add(token)
+
+    match = re.match(r"^mcp__([^_]+)__", raw)
+    if match:
+        out.add(match.group(1))
+
+    if "server-" in raw:
+        out.add(raw.split("server-", 1)[1])
+
+    return out
+
+observed = parse_csv(os.environ.get("TOOLSPEC_OBSERVED", ""))
+whitelist = set(json.loads(os.environ.get("TOOLSPEC_WHITELIST", "[]")))
+
+public = []
+unknown = []
+for slug in observed:
+    if any(c in whitelist for c in candidates(slug)):
+        public.append(slug)
+    else:
+        unknown.append(slug)
+
+print(json.dumps({"public": public, "unknown": unknown}))
+PY
 }
 
 extract_required_field() {
@@ -67,48 +278,15 @@ if isinstance(value, str) and value.strip():
 PY
 }
 
-print_submit_examples() {
-  local reviews_json="$1"
-  if [ -z "$reviews_json" ] || ! command -v python3 >/dev/null 2>&1; then
-    return 1
-  fi
-
-  TOOLSPEC_JSON="$reviews_json" python3 - <<'PY'
-import json
-import os
-import sys
-
-try:
-    payload = json.loads(os.environ.get("TOOLSPEC_JSON", "{}"))
-except Exception:
-    sys.exit(0)
-
-reviews = payload.get("reviews")
-if not isinstance(reviews, list):
-    sys.exit(0)
-
-seen = set()
-count = 0
-for row in reviews:
-    if not isinstance(row, dict):
-        continue
-    slug = row.get("tool_slug")
-    if not isinstance(slug, str) or not slug or slug in seen:
-        continue
-    seen.add(slug)
-    print(f"toolspec submit {slug}")
-    count += 1
-    if count >= 5:
-        break
-PY
-}
-
 status_and_next_steps() {
-  local status_json="" required_command required_message reviews_json submit_examples
-  required_command="toolspec submit <tool_slug>"
+  local status_json="" required_command required_message
+  required_command="toolspec submit"
   required_message=""
 
-  if status_json="$(curl -fsS "$BASE_URL/api/v1/access-status" 2>/dev/null || true)"; then
+  local status_url
+  status_url="$(access_status_url)"
+
+  if status_json="$(curl -fsS "$status_url" 2>/dev/null || true)"; then
     if [ -n "$status_json" ]; then
       echo "ToolSpec status:"
       echo "$status_json"
@@ -129,45 +307,143 @@ status_and_next_steps() {
     echo "REQUIRED NEXT STEP: $required_command"
   fi
 
-  reviews_json="$(curl -fsS "$BASE_URL/api/reviews.json" 2>/dev/null || true)"
-  submit_examples="$(print_submit_examples "$reviews_json" || true)"
-  if [ -n "$submit_examples" ]; then
-    echo "Examples:"
-    while IFS= read -r line; do
-      [ -n "$line" ] && echo "  - $line"
-    done <<EOF
-$submit_examples
-EOF
+  local observed_csv classify_json public_csv unknown_csv
+  observed_csv="${TOOLSPEC_OBSERVED_TOOLS:-}"
+  if [ -n "$observed_csv" ]; then
+    classify_json="$(classify_observed_json "$observed_csv")"
+    public_csv="$(json_field_csv "$classify_json" "public")"
+    unknown_csv="$(json_field_csv "$classify_json" "unknown")"
+
+    echo "Observed tools: $(csv_count "$observed_csv") ($(csv_count "$public_csv") public, $(csv_count "$unknown_csv") non-whitelist)"
+    echo "Default mode: toolspec submit"
+    echo "All mode: toolspec submit all"
+    echo "All mode, no prompts: toolspec submit all --yolo"
   fi
 
-  echo "Use the tool you just used as <tool_slug>."
   echo "Run 'toolspec help' for command reference."
 }
 
 submit_review() {
-  local tool_slug="${1:-}"
-  local agent_model="${TOOLSPEC_AGENT_MODEL:-unknown-agent}"
-  if [ -z "$tool_slug" ]; then
-    echo "Usage: toolspec submit <tool_slug>"
+  local all_mode="false"
+  local yolo_mode="false"
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      all)
+        all_mode="true"
+        shift
+        ;;
+      --yolo)
+        yolo_mode="true"
+        shift
+        ;;
+      --*)
+        echo "Unknown option for submit: $1"
+        echo "Usage: toolspec submit [all] [--yolo]"
+        exit 1
+        ;;
+      *)
+        echo "Usage: toolspec submit [all] [--yolo]"
+        exit 1
+        ;;
+    esac
+  done
+
+  if [ "$yolo_mode" = "true" ] && [ "$all_mode" != "true" ]; then
+    echo "Error: --yolo requires all"
     exit 1
   fi
 
-  local now ts payload
+  local mode_label
+  if [ "$all_mode" = "true" ]; then
+    mode_label="all"
+  else
+    mode_label="whitelist"
+  fi
+
+  local observed_csv classify_json public_csv unknown_csv included_csv redacted_csv
+  observed_csv="${TOOLSPEC_OBSERVED_TOOLS:-}"
+  classify_json="$(classify_observed_json "$observed_csv")"
+  public_csv="$(json_field_csv "$classify_json" "public")"
+  unknown_csv="$(json_field_csv "$classify_json" "unknown")"
+  included_csv="$public_csv"
+  redacted_csv="$unknown_csv"
+
+  if [ "$all_mode" = "true" ]; then
+    if [ "$yolo_mode" = "true" ]; then
+      included_csv="$(csv_union "$public_csv" "$unknown_csv")"
+      redacted_csv=""
+    elif [ -n "$unknown_csv" ]; then
+      if [ -t 0 ] && [ -t 1 ]; then
+        local include_unknown=""
+        local redact_unknown=""
+        IFS=',' read -r -a unknown_items <<< "$unknown_csv"
+        for slug in "${unknown_items[@]}"; do
+          [ -z "$slug" ] && continue
+          read -r -p "Include non-whitelist tool '$slug'? [y/N]: " answer
+          answer="${answer:-N}"
+          case "$answer" in
+            y|Y|yes|YES)
+              include_unknown="$(csv_union "$include_unknown" "$slug")"
+              ;;
+            *)
+              redact_unknown="$(csv_union "$redact_unknown" "$slug")"
+              ;;
+          esac
+        done
+        included_csv="$(csv_union "$public_csv" "$include_unknown")"
+        redacted_csv="$redact_unknown"
+      else
+        echo "Unknown non-whitelist tools require explicit choice."
+        echo "Use 'toolspec submit all --yolo' to include all unknown tools, or run 'toolspec submit' for whitelist-only."
+        exit 1
+      fi
+    fi
+  fi
+
+  local observed_json redacted_json submitted_json observed_count redacted_count
+  observed_json="$(json_array_from_csv "$observed_csv")"
+  redacted_json="$(json_array_from_csv "$redacted_csv")"
+  submitted_json="$(json_array_from_csv "$included_csv")"
+  observed_count="$(csv_count "$observed_csv")"
+  redacted_count="$(csv_count "$redacted_csv")"
+
+  local agent_model now ts install_id install_id_json payload
+  agent_model="${TOOLSPEC_AGENT_MODEL:-unknown-agent}"
   now="$(now_utc)"
   ts="$(date -u +%s)"
+  install_id="$(get_install_id || true)"
+  install_id_json="null"
+  if [ -n "$install_id" ]; then
+    install_id_json="\"$install_id\""
+  fi
+
   payload="$(cat <<JSON
 {
-  "tool_slug": "${tool_slug}",
-  "agent_model": "${agent_model}",
-  "review_window_start_utc": "${now}",
-  "review_window_end_utc": "${now}",
+  "install_id": $install_id_json,
+  "submission_scope": "all_observed",
+  "tool_slug": "__session__",
+  "agent_model": "$agent_model",
+  "review_window_start_utc": "$now",
+  "review_window_end_utc": "$now",
   "recommendation": "caution",
   "confidence": "low",
-  "reliable_tools": [],
+  "observed_tool_slugs": $observed_json,
+  "redacted_tool_slugs": $redacted_json,
+  "reliable_tools": $submitted_json,
   "unreliable_tools": [],
   "hallucinated_tools": [],
-  "never_used_tools": [],
-  "behavioral_notes": ["submitted_via_toolspec_cli"],
+  "never_used_tools": $redacted_json,
+  "behavioral_notes": [
+    "submitted_via_toolspec_cli",
+    "submission_scope=all_observed",
+    "submit_mode=$mode_label",
+    "submit_yolo=$yolo_mode",
+    "whitelist_tools=$(csv_count "$public_csv")",
+    "unknown_tools=$(csv_count "$unknown_csv")",
+    "observed_tools=$observed_count",
+    "redacted_tools=$redacted_count"
+  ],
   "failure_modes": [
     {
       "symptom": "not_provided",
@@ -178,11 +454,11 @@ submit_review() {
   ],
   "evidence": [
     {
-      "tool_call_id": "manual_${ts}",
-      "timestamp_utc": "${now}"
+      "tool_call_id": "session_${ts}",
+      "timestamp_utc": "$now"
     }
   ],
-  "idempotency_key": "manual_${ts}"
+  "idempotency_key": "session_${ts}"
 }
 JSON
 )"
@@ -191,26 +467,21 @@ JSON
     -H "content-type: application/json" \
     -d "$payload"
   echo
+
+  local mode_display="$mode_label"
+  if [ "$all_mode" = "true" ] && [ "$yolo_mode" = "true" ]; then
+    mode_display="all (yolo)"
+  fi
+  echo "Submitted tools: $(csv_count "$included_csv") | Redacted tools: $redacted_count | Mode: $mode_display"
+
+  if [ -n "$redacted_csv" ]; then
+    echo "Redacted tool slugs: $redacted_csv"
+  fi
 }
 
 revoke_install() {
-  if [ ! -f "$INSTALL_FILE" ] || ! command -v python3 >/dev/null 2>&1; then
-    return 0
-  fi
-
   local install_id
-  install_id="$(python3 - "$INSTALL_FILE" <<'PY'
-import json, pathlib, sys
-path = pathlib.Path(sys.argv[1])
-try:
-    payload = json.loads(path.read_text())
-    value = payload.get("install_id")
-    if isinstance(value, str):
-        print(value)
-except Exception:
-    pass
-PY
-)"
+  install_id="$(get_install_id || true)"
 
   if [ -n "$install_id" ]; then
     curl -fsS -X POST "$BASE_URL/api/v1/installs/revoke" \
@@ -225,11 +496,12 @@ case "$cmd" in
     status_and_next_steps
     ;;
   verify)
-    curl -fsS "$BASE_URL/api/v1/access-status"
+    curl -fsS "$(access_status_url)"
     echo
     ;;
   submit)
-    submit_review "${2:-}"
+    shift
+    submit_review "$@"
     ;;
   uninstall)
     revoke_install
@@ -257,7 +529,10 @@ fi
 PROMPT_MESSAGE=""
 if [ -f "$INSTALL_FILE" ] && command -v python3 >/dev/null 2>&1; then
   PROMPT_MESSAGE="$(python3 - "$INSTALL_FILE" <<'PY'
-import json, pathlib, sys
+import json
+import pathlib
+import sys
+
 path = pathlib.Path(sys.argv[1])
 try:
     payload = json.loads(path.read_text())
@@ -276,7 +551,7 @@ if [ -n "$PROMPT_MESSAGE" ]; then
   echo "$PROMPT_MESSAGE"
 fi
 echo "Run: toolspec verify"
-echo "REQUIRED NEXT STEP: toolspec submit <tool_slug>"
+echo "REQUIRED NEXT STEP: toolspec submit"
 echo
 echo "Running post-install status check..."
 if ! "$CLI_PATH" status; then

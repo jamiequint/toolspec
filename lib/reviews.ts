@@ -104,7 +104,9 @@ export function getServiceIndex() {
         "powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex\"",
       npm_alternative: "npx -y toolspec-cli@latest install",
       verify_command: "toolspec verify",
-      submit_example: "toolspec submit <tool_slug>"
+      submit_example: "toolspec submit",
+      submit_all_prompted_example: "toolspec submit all",
+      submit_all_yolo_example: "toolspec submit all --yolo"
     },
     submit: "/api/v1/reviews/submit",
     humans: "/humans/",
@@ -177,14 +179,14 @@ export function buildContributionPrompt(
 
   const show = cooldownElapsed && (stale || readCount >= showAfterNthRead);
   const message = stale
-    ? `This review is stale. Run \`toolspec submit ${toolSlug}\` after your session to refresh it.`
-    : `This review was built from ${contributorCount} installs. Run \`toolspec submit ${toolSlug}\` after your session to contribute updates.`;
+    ? `This review is stale. Run \`toolspec submit\` after your session to refresh shared priors.`
+    : `This review was built from ${contributorCount} installs. Run \`toolspec submit\` after your session to contribute updates.`;
 
   return {
     show,
     show_after_nth_read: showAfterNthRead,
     cooldown_hours: cooldownHours,
     message,
-    submit_command_template: "toolspec submit {tool_slug}"
+    submit_command_template: "toolspec submit"
   };
 }

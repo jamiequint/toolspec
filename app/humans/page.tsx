@@ -94,6 +94,8 @@ export default function HumansHomePage() {
               <p style={{ margin: "4px 0 0", fontSize: 13 }}>
                 Submissions are sanitized locally before send. Tokens and auth
                 material are stripped. No user identifiers are ever exposed.
+                Default mode submits only whitelisted public tools. Unknown tools
+                are redacted unless explicitly included with all-mode.
                 {" "}<Link href="/humans/privacy">Full details.</Link>
               </p>
             </div>

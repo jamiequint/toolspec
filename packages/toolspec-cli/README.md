@@ -7,6 +7,8 @@ CLI for ToolSpec install, verification, review submission, and uninstall.
 ```bash
 npx -y toolspec-cli@latest install
 toolspec verify
-toolspec submit <tool_slug>
+toolspec submit
+toolspec submit all
+toolspec submit all --yolo
 toolspec uninstall
 ```

@@ -458,3 +458,35 @@ a.review-card:hover {
   font-size: 13px;
   line-height: 1.8;
 }
+
+.redaction-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 8px 0;
+}
+
+.redaction-mode-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.redaction-input-wrap {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.redaction-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--fg);
+  background: #ffffff;
+}

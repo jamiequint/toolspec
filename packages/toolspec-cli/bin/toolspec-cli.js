@@ -4,6 +4,8 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
+const readline = require("node:readline/promises");
+const { stdin, stdout } = require("node:process");
 
 const BASE_URL = process.env.TOOLSPEC_BASE_URL || "https://toolspec.dev";
 const CONFIG_DIR = process.env.TOOLSPEC_CONFIG_DIR || path.join(os.homedir(), ".toolspec");
@@ -16,8 +18,128 @@ const BIN_DIR =
 const WRAPPER_PATH =
   process.platform === "win32" ? path.join(BIN_DIR, "toolspec.cmd") : path.join(BIN_DIR, "toolspec");
 
+const PUBLIC_TOOL_WHITELIST = new Set([
+  "anthropic",
+  "airtable",
+  "asana",
+  "aws",
+  "azure",
+  "bigquery",
+  "brave",
+  "browserbase",
+  "cloudflare",
+  "confluence",
+  "discord",
+  "fetch",
+  "figma",
+  "filesystem",
+  "gcp",
+  "github",
+  "gitlab",
+  "google",
+  "hubspot",
+  "jira",
+  "linear",
+  "mongodb",
+  "mysql",
+  "notion",
+  "openai",
+  "paypal",
+  "postgres",
+  "redis",
+  "salesforce",
+  "serpapi",
+  "shopify",
+  "slack",
+  "snowflake",
+  "sqlite",
+  "stripe",
+  "supabase",
+  "tavily",
+  "twilio",
+  "vercel",
+  "zendesk"
+]);
+
 function usage() {
-  console.log(`ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec submit <tool_slug>\n  toolspec uninstall`);
+  console.log(`ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec submit\n  toolspec submit all\n  toolspec submit all --yolo\n  toolspec uninstall`);
+}
+
+function parseCsvList(raw) {
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return [];
+  }
+
+  const seen = new Set();
+  const values = [];
+  for (const part of raw.split(",")) {
+    const value = part.trim();
+    if (!value || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    values.push(value);
+  }
+  return values;
+}
+
+function getObservedToolSlugs() {
+  return parseCsvList(process.env.TOOLSPEC_OBSERVED_TOOLS || "");
+}
+
+function getSlugCandidates(toolSlug) {
+  const slug = String(toolSlug || "").trim().toLowerCase();
+  if (!slug) {
+    return [];
+  }
+
+  const candidates = new Set([slug]);
+  for (const token of slug.split(/[\/:_\-\.@]+/).filter(Boolean)) {
+    candidates.add(token);
+  }
+
+  const mcpServerMatch = slug.match(/^mcp__([^_]+)__/);
+  if (mcpServerMatch?.[1]) {
+    candidates.add(mcpServerMatch[1]);
+  }
+
+  if (slug.includes("server-")) {
+    candidates.add(slug.split("server-").pop());
+  }
+
+  return Array.from(candidates);
+}
+
+function isWhitelistedToolSlug(toolSlug) {
+  return getSlugCandidates(toolSlug).some((candidate) => PUBLIC_TOOL_WHITELIST.has(candidate));
+}
+
+function partitionObservedTools(observedTools) {
+  const publicTools = [];
+  const unknownTools = [];
+
+  for (const slug of observedTools) {
+    if (isWhitelistedToolSlug(slug)) {
+      publicTools.push(slug);
+    } else {
+      unknownTools.push(slug);
+    }
+  }
+
+  return { publicTools, unknownTools };
+}
+
+function uniq(values) {
+  const seen = new Set();
+  const out = [];
+  for (const value of values) {
+    if (seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
 }
 
 async function requestJson(method, pathname, payload) {
@@ -28,6 +150,11 @@ async function requestJson(method, pathname, payload) {
       "content-type": "application/json"
     }
   };
+
+  const installRecord = await readInstallRecord();
+  if (typeof installRecord?.install_id === "string" && installRecord.install_id.length > 0) {
+    options.headers["x-toolspec-install-id"] = installRecord.install_id;
+  }
 
   if (payload) {
     options.body = JSON.stringify(payload);
@@ -101,7 +228,7 @@ async function runInstall() {
     const pathEntries = (process.env.PATH || "").split(":");
     if (!pathEntries.includes(BIN_DIR)) {
       console.log("Add this to your shell profile to use 'toolspec' globally:");
-      console.log(`  export PATH="${BIN_DIR}:$PATH"`);
+      console.log(`  export PATH=\"${BIN_DIR}:$PATH\"`);
     }
   } else {
     console.log("Add this directory to PATH for global access:");
@@ -114,7 +241,7 @@ async function runInstall() {
     console.log(promptMessage);
   }
   console.log("Run: toolspec verify");
-  console.log("REQUIRED NEXT STEP: toolspec submit <tool_slug>");
+  console.log("REQUIRED NEXT STEP: toolspec submit");
   console.log("");
   console.log("Running post-install status check...");
   try {
@@ -125,32 +252,51 @@ async function runInstall() {
 }
 
 async function runVerify() {
-  const payload = await requestJson("GET", "/api/v1/access-status");
+  const installRecord = await readInstallRecord();
+  const installId = installRecord?.install_id;
+  const suffix = typeof installId === "string" && installId.length > 0
+    ? `?install_id=${encodeURIComponent(installId)}`
+    : "";
+
+  const payload = await requestJson("GET", `/api/v1/access-status${suffix}`);
   console.log(JSON.stringify(payload, null, 2));
 }
 
-function getSubmitExamples(reviewsPayload) {
-  const rows = Array.isArray(reviewsPayload?.reviews) ? reviewsPayload.reviews : [];
-  const seen = new Set();
-  const examples = [];
-  for (const row of rows) {
-    const slug = row?.tool_slug;
-    if (typeof slug !== "string" || slug.length === 0 || seen.has(slug)) {
-      continue;
-    }
-    seen.add(slug);
-    examples.push(`toolspec submit ${slug}`);
-    if (examples.length >= 5) {
-      break;
-    }
+async function promptUnknownToolsOneByOne(unknownTools) {
+  const included = [];
+  const redacted = [];
+  if (!stdin.isTTY || !stdout.isTTY || unknownTools.length === 0) {
+    return { included, redacted: [...unknownTools], prompted: false };
   }
-  return examples;
+
+  const rl = readline.createInterface({ input: stdin, output: stdout });
+  try {
+    for (const tool of unknownTools) {
+      const answer = await rl.question(`Include non-whitelist tool '${tool}'? [y/N]: `);
+      const normalized = answer.trim().toLowerCase();
+      if (normalized === "y" || normalized === "yes") {
+        included.push(tool);
+      } else {
+        redacted.push(tool);
+      }
+    }
+  } finally {
+    rl.close();
+  }
+
+  return { included, redacted, prompted: true };
 }
 
 async function runStatus() {
   let statusPayload = null;
+  const installRecord = await readInstallRecord();
+  const installId = installRecord?.install_id;
+  const suffix = typeof installId === "string" && installId.length > 0
+    ? `?install_id=${encodeURIComponent(installId)}`
+    : "";
+
   try {
-    statusPayload = await requestJson("GET", "/api/v1/access-status");
+    statusPayload = await requestJson("GET", `/api/v1/access-status${suffix}`);
     console.log("ToolSpec status:");
     console.log(JSON.stringify(statusPayload, null, 2));
     console.log("");
@@ -160,8 +306,7 @@ async function runStatus() {
   }
 
   const requiredMessage = statusPayload?.post_install_required_message;
-  const requiredCommand =
-    statusPayload?.post_install_required_command || "toolspec submit <tool_slug>";
+  const requiredCommand = statusPayload?.post_install_required_command || "toolspec submit";
 
   if (typeof requiredMessage === "string" && requiredMessage.length > 0) {
     console.log(requiredMessage);
@@ -169,41 +314,124 @@ async function runStatus() {
     console.log(`REQUIRED NEXT STEP: ${requiredCommand}`);
   }
 
-  try {
-    const reviewsPayload = await requestJson("GET", "/api/reviews.json");
-    const examples = getSubmitExamples(reviewsPayload);
-    if (examples.length > 0) {
-      console.log("Examples:");
-      for (const line of examples) {
-        console.log(`  - ${line}`);
-      }
-    }
-  } catch {
+  const observed = getObservedToolSlugs();
+  if (observed.length > 0) {
+    const { publicTools, unknownTools } = partitionObservedTools(observed);
+    console.log(
+      `Observed tools: ${observed.length} (${publicTools.length} public, ${unknownTools.length} non-whitelist)`
+    );
+    console.log("Default mode: toolspec submit  (whitelist only)");
+    console.log("All mode: toolspec submit all");
+    console.log("All mode, no prompts: toolspec submit all --yolo");
   }
 
-  console.log("Use the tool you just used as <tool_slug>.");
   console.log("Run 'toolspec help' for command reference.");
 }
 
-async function runSubmit(toolSlug) {
-  if (!toolSlug) {
-    throw new Error("Usage: toolspec submit <tool_slug>");
+function parseSubmitArgs(args) {
+  let allMode = false;
+  let yolo = false;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "all") {
+      allMode = true;
+      continue;
+    }
+
+    if (arg === "--yolo") {
+      yolo = true;
+      continue;
+    }
+
+    throw new Error(
+      `Unknown option for submit: ${arg}\nUsage: toolspec submit [all] [--yolo]`
+    );
   }
+
+  if (yolo && !allMode) {
+    throw new Error("`--yolo` requires `all`.");
+  }
+
+  return {
+    mode: allMode ? "all" : "whitelist",
+    yolo
+  };
+}
+
+function buildEvidence(now, token, submittedTools) {
+  if (!submittedTools.length) {
+    return [
+      {
+        tool_call_id: `manual_${token}`,
+        timestamp_utc: now
+      }
+    ];
+  }
+
+  return submittedTools.slice(0, 50).map((slug, index) => ({
+    tool_call_id: `session_${token}_${index + 1}_${slug}`,
+    timestamp_utc: now
+  }));
+}
+
+async function runSubmit(rawArgs) {
+  const { mode, yolo } = parseSubmitArgs(rawArgs);
+  const installRecord = await readInstallRecord();
+  const installId = typeof installRecord?.install_id === "string" ? installRecord.install_id : undefined;
 
   const now = new Date().toISOString();
   const token = crypto.randomUUID().replace(/-/g, "");
+  const observedTools = getObservedToolSlugs();
+  const { publicTools, unknownTools } = partitionObservedTools(observedTools);
+
+  let includedTools = [...publicTools];
+  let redactedToolSlugs = [...unknownTools];
+
+  if (mode === "all") {
+    if (yolo) {
+      includedTools = uniq([...publicTools, ...unknownTools]);
+      redactedToolSlugs = [];
+    } else if (unknownTools.length > 0) {
+      const decision = await promptUnknownToolsOneByOne(unknownTools);
+      if (decision.prompted) {
+        includedTools = uniq([...publicTools, ...decision.included]);
+        redactedToolSlugs = decision.redacted;
+      } else {
+        throw new Error(
+          "Unknown non-whitelist tools require explicit choice. Re-run with `toolspec submit all --yolo` to include all unknown tools, or run `toolspec submit` for whitelist-only."
+        );
+      }
+    }
+  }
+
+  const submittedTools = uniq(includedTools);
+
   const payload = {
-    tool_slug: toolSlug,
+    install_id: installId,
+    submission_scope: "all_observed",
+    observed_tool_slugs: observedTools,
+    redacted_tool_slugs: redactedToolSlugs,
+    tool_slug: "__session__",
     agent_model: process.env.TOOLSPEC_AGENT_MODEL || "unknown-agent",
     review_window_start_utc: now,
     review_window_end_utc: now,
     recommendation: "caution",
     confidence: "low",
-    reliable_tools: [],
+    reliable_tools: submittedTools,
     unreliable_tools: [],
     hallucinated_tools: [],
-    never_used_tools: [],
-    behavioral_notes: ["submitted_via_toolspec_cli"],
+    never_used_tools: redactedToolSlugs,
+    behavioral_notes: [
+      "submitted_via_toolspec_cli",
+      "submission_scope=all_observed",
+      `submit_mode=${mode}`,
+      `submit_yolo=${yolo ? "true" : "false"}`,
+      `whitelist_tools=${publicTools.length}`,
+      `unknown_tools=${unknownTools.length}`,
+      `observed_tools=${observedTools.length}`,
+      `redacted_tools=${redactedToolSlugs.length}`
+    ],
     failure_modes: [
       {
         symptom: "not_provided",
@@ -212,17 +440,19 @@ async function runSubmit(toolSlug) {
         frequency: "rare"
       }
     ],
-    evidence: [
-      {
-        tool_call_id: `manual_${token}`,
-        timestamp_utc: now
-      }
-    ],
-    idempotency_key: `manual_${token}`
+    evidence: buildEvidence(now, token, submittedTools),
+    idempotency_key: `session_${token}`
   };
 
   const response = await requestJson("POST", "/api/v1/reviews/submit", payload);
   console.log(JSON.stringify(response, null, 2));
+  console.log(
+    `Submitted tools: ${submittedTools.length} | Redacted tools: ${redactedToolSlugs.length} | Mode: ${mode}${yolo ? " (yolo)" : ""}`
+  );
+
+  if (redactedToolSlugs.length > 0) {
+    console.log(`Redacted tool slugs: ${redactedToolSlugs.join(", ")}`);
+  }
 }
 
 async function runUninstall() {
@@ -256,7 +486,7 @@ async function main() {
       await runVerify();
       return;
     case "submit":
-      await runSubmit(args[0]);
+      await runSubmit(args);
       return;
     case "uninstall":
       await runUninstall();

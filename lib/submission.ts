@@ -14,6 +14,10 @@ export interface ValidationError {
 }
 
 export interface ReviewSubmission {
+  install_id?: string;
+  submission_scope?: "single_tool" | "all_observed";
+  observed_tool_slugs?: string[];
+  redacted_tool_slugs?: string[];
   tool_slug: string;
   agent_model: string;
   review_window_start_utc: string;
@@ -97,6 +101,33 @@ export function validateSubmission(body: unknown): {
     if (typeof body[field] !== "string" || body[field].trim().length === 0) {
       errors.push({ field, message: "must be a non-empty string" });
     }
+  }
+
+  if (body.install_id !== undefined) {
+    if (typeof body.install_id !== "string" || body.install_id.trim().length === 0) {
+      errors.push({ field: "install_id", message: "must be a non-empty string when provided" });
+    } else if (body.install_id.length > 100) {
+      errors.push({ field: "install_id", message: "must be at most 100 characters" });
+    } else if (!/^[a-zA-Z0-9._:-]+$/.test(body.install_id)) {
+      errors.push({ field: "install_id", message: "contains invalid characters" });
+    }
+  }
+
+  if (body.submission_scope !== undefined) {
+    if (body.submission_scope !== "single_tool" && body.submission_scope !== "all_observed") {
+      errors.push({
+        field: "submission_scope",
+        message: "must be one of single_tool|all_observed when provided"
+      });
+    }
+  }
+
+  if (body.observed_tool_slugs !== undefined && !isStringArray(body.observed_tool_slugs)) {
+    errors.push({ field: "observed_tool_slugs", message: "must be an array of strings" });
+  }
+
+  if (body.redacted_tool_slugs !== undefined && !isStringArray(body.redacted_tool_slugs)) {
+    errors.push({ field: "redacted_tool_slugs", message: "must be an array of strings" });
   }
 
   const listFields = [

@@ -14,6 +14,18 @@ type SubmissionRow = QueryResultRow & {
   validated_tool_use_count: number;
 };
 
+type InstallStatusRow = QueryResultRow & {
+  install_id: string;
+  first_submission_at: string | null;
+  revoked_at: string | null;
+};
+
+const fallbackInstalls = new Map<string, {
+  install_secret: string;
+  first_submission_at: string | null;
+  revoked_at: string | null;
+}>();
+
 let pool: Pool | null = null;
 let ensurePromise: Promise<void> | null = null;
 
@@ -76,10 +88,22 @@ async function ensureDbReady() {
         `);
 
         await client.query(`
+          CREATE TABLE IF NOT EXISTS tool_installs (
+            install_id TEXT PRIMARY KEY,
+            install_secret TEXT NOT NULL,
+            secret_version INTEGER NOT NULL DEFAULT 1,
+            first_submission_at TIMESTAMPTZ,
+            revoked_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+        `);
+
+        await client.query(`
           CREATE TABLE IF NOT EXISTS review_submissions (
             review_id TEXT PRIMARY KEY,
             tool_slug TEXT NOT NULL,
             agent_model TEXT NOT NULL,
+            install_id TEXT,
             idempotency_key TEXT NOT NULL UNIQUE,
             validated_tool_use_count INTEGER NOT NULL,
             status TEXT NOT NULL DEFAULT 'submitted',
@@ -87,6 +111,10 @@ async function ensureDbReady() {
             submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           )
         `);
+
+        await client.query(
+          "ALTER TABLE review_submissions ADD COLUMN IF NOT EXISTS install_id TEXT"
+        );
 
         await client.query("DELETE FROM tool_reviews WHERE tool_slug = 'groundeffect'");
 
@@ -176,6 +204,14 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
   duplicate: boolean;
 }> {
   if (!hasDatabaseUrl()) {
+    if (submission.install_id) {
+      const existing = fallbackInstalls.get(submission.install_id);
+      if (existing && !existing.first_submission_at) {
+        existing.first_submission_at = new Date().toISOString();
+        fallbackInstalls.set(submission.install_id, existing);
+      }
+    }
+
     return {
       reviewId: `rev_${randomUUID()}`,
       validatedToolUseCount: submission.evidence.length,
@@ -194,12 +230,13 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
         review_id,
         tool_slug,
         agent_model,
+        install_id,
         idempotency_key,
         validated_tool_use_count,
         status,
         submission_json
       )
-      VALUES ($1, $2, $3, $4, $5, 'submitted', $6::jsonb)
+      VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7::jsonb)
       ON CONFLICT (idempotency_key) DO NOTHING
       RETURNING review_id, validated_tool_use_count
     `,
@@ -207,11 +244,23 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
       reviewId,
       submission.tool_slug,
       submission.agent_model,
+      submission.install_id ?? null,
       submission.idempotency_key,
       validatedToolUseCount,
       JSON.stringify(submission)
     ]
   );
+
+  if (submission.install_id) {
+    await getPool().query(
+      `
+        UPDATE tool_installs
+        SET first_submission_at = COALESCE(first_submission_at, NOW())
+        WHERE install_id = $1 AND revoked_at IS NULL
+      `,
+      [submission.install_id]
+    );
+  }
 
   if (inserted.rows[0]) {
     return {
@@ -238,6 +287,110 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
     reviewId: existing.rows[0].review_id,
     validatedToolUseCount: existing.rows[0].validated_tool_use_count,
     duplicate: true
+  };
+}
+
+export async function createInstallRecord() {
+  const installId = `ins_${randomUUID()}`;
+  const installSecret = randomUUID().replace(/-/g, "") + randomUUID().replace(/-/g, "");
+
+  if (!hasDatabaseUrl()) {
+    fallbackInstalls.set(installId, {
+      install_secret: installSecret,
+      first_submission_at: null,
+      revoked_at: null
+    });
+    return {
+      installId,
+      installSecret,
+      secretVersion: 1
+    };
+  }
+
+  await ensureDbReady();
+  await getPool().query(
+    `
+      INSERT INTO tool_installs (install_id, install_secret, secret_version)
+      VALUES ($1, $2, 1)
+    `,
+    [installId, installSecret]
+  );
+
+  return {
+    installId,
+    installSecret,
+    secretVersion: 1
+  };
+}
+
+export async function revokeInstallRecord(installId: string) {
+  if (!hasDatabaseUrl()) {
+    const current = fallbackInstalls.get(installId);
+    if (current) {
+      current.revoked_at = new Date().toISOString();
+      fallbackInstalls.set(installId, current);
+    }
+    return { revoked: !!current };
+  }
+
+  await ensureDbReady();
+  const result = await getPool().query(
+    `
+      UPDATE tool_installs
+      SET revoked_at = COALESCE(revoked_at, NOW())
+      WHERE install_id = $1
+    `,
+    [installId]
+  );
+  return { revoked: (result.rowCount ?? 0) > 0 };
+}
+
+export async function getInstallStatus(installId: string) {
+  if (!hasDatabaseUrl()) {
+    const install = fallbackInstalls.get(installId);
+    if (!install) {
+      return {
+        found: false,
+        revoked: false,
+        firstSubmissionCompleted: false,
+        firstSubmissionAt: null as string | null
+      };
+    }
+
+    return {
+      found: true,
+      revoked: !!install.revoked_at,
+      firstSubmissionCompleted: !!install.first_submission_at,
+      firstSubmissionAt: install.first_submission_at
+    };
+  }
+
+  await ensureDbReady();
+  const rowResult = await getPool().query<InstallStatusRow>(
+    `
+      SELECT install_id, first_submission_at::text, revoked_at::text
+      FROM tool_installs
+      WHERE install_id = $1
+      LIMIT 1
+    `,
+    [installId]
+  );
+
+  const row = rowResult.rows[0];
+  if (!row) {
+    return {
+      found: false,
+      revoked: false,
+      firstSubmissionCompleted: false,
+      firstSubmissionAt: null as string | null
+    };
+  }
+
+  return {
+    found: true,
+    revoked: !!row.revoked_at,
+    firstSubmissionCompleted: !!row.first_submission_at,
+    firstSubmissionAt: row.first_submission_at
   };
 }
 

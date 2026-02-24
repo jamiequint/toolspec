@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RedactionConfigurator from "../RedactionConfigurator";
 
 export default function HumansPrivacyPage() {
   return (
@@ -13,7 +14,7 @@ export default function HumansPrivacyPage() {
         <h1>Privacy and redaction</h1>
         <p style={{ margin: 0 }}>
           ToolSpec submissions are allowlist-based and sanitized before network
-          submission. Nothing leaves your machine without explicit redaction.
+          submission. Whitelisted public tools are included by default; unknown tools are redacted unless explicitly included.
         </p>
       </div>
 
@@ -22,17 +23,21 @@ export default function HumansPrivacyPage() {
           <span className="badge good">sent</span> What is sent
         </h2>
         <ul>
-          <li>Tool slug and observation window</li>
+          <li>Session-level observation window</li>
+          <li>Whitelisted public tool slugs by default</li>
           <li>Operational outcomes and failure-mode summaries</li>
           <li>Evidence references required for validation</li>
         </ul>
       </div>
+
+      <RedactionConfigurator />
 
       <div className="privacy-section">
         <h2>
           <span className="badge warn">redacted</span> What is redacted
         </h2>
         <ul>
+          <li>Unknown/non-whitelisted tool slugs (default mode)</li>
           <li>Tokens and API keys</li>
           <li>Cookies and auth headers</li>
           <li>Unknown fields not explicitly allowlisted</li>

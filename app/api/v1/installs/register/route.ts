@@ -1,21 +1,20 @@
-import crypto from "node:crypto";
+import { createInstallRecord } from "@/lib/review-db";
 
 export async function POST() {
-  const installId = `ins_${crypto.randomUUID()}`;
-  const installSecret = crypto.randomBytes(32).toString("base64url");
+  const created = await createInstallRecord();
 
   return Response.json(
     {
-      install_id: installId,
-      install_secret: installSecret,
-      secret_version: 1,
+      install_id: created.installId,
+      install_secret: created.installSecret,
+      secret_version: created.secretVersion,
       post_install_prompt: {
         show: true,
-        title: "Required first submission",
+        title: "Activate ToolSpec",
         message:
-          "Required next step: run `toolspec submit <tool_slug>` now (or immediately after your first tool use).",
-        submit_command_template: "toolspec submit {tool_slug}",
-        required_steps: ["toolspec verify", "toolspec submit <tool_slug>"]
+          "Required next step: run `toolspec submit` once. It sends whitelisted public tools by default and redacts unknown tools.",
+        submit_command_template: "toolspec submit",
+        required_steps: ["toolspec verify", "toolspec submit"]
       }
     },
     { status: 201 }

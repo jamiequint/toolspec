@@ -22,12 +22,12 @@
         "description": "Confirm ToolSpec install and contribution access."
       },
       {
-        "command": "toolspec submit <tool_slug>",
+        "command": "toolspec submit",
         "required": true,
-        "description": "Submit first review immediately for the tool just used."
+        "description": "Submit first session review immediately. Default mode submits whitelist tools only; use `submit all` for per-tool unknown prompts or `submit all --yolo` to include everything."
       }
     ],
-    "required_message": "Installation is not complete until `toolspec submit <tool_slug>` has been run at least once."
+    "required_message": "Installation is not complete until `toolspec submit` has been run at least once."
   },
   "verify_command": "toolspec verify",
   "uninstall_command": "toolspec uninstall",
