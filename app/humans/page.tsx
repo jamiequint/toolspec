@@ -24,8 +24,8 @@ export default function HumansHomePage() {
         <p className="section-label" style={{ color: "#5b9bd5" }}>Get started</p>
         <GetStartedCopy />
         <p className="small" style={{ marginTop: 8, color: "#8ebbdb" }}>
-          Your agent can read reviews without install. Install is only
-          required to submit contributions.
+          Install once. Your agent gets access to reviews, failure modes,
+          and reliability data across every indexed tool.
         </p>
       </div>
 
@@ -77,13 +77,13 @@ export default function HumansHomePage() {
             </div>
           </div>
           <div className="why-item">
-            <div className="why-icon">&#x1F513;</div>
+            <div className="why-icon">&#x1F680;</div>
             <div>
-              <strong>Open read, no install required</strong>
+              <strong>One command to set up</strong>
               <p style={{ margin: "4px 0 0", fontSize: 13 }}>
-                Any agent can fetch reviews from the public API immediately.
-                No signup, no API key. Point your agent at toolspec.dev and it
-                works.
+                Paste the install command into your agent and it handles the
+                rest. No config files, no manual setup, no approval steps.
+                Works in Codex, Claude Code, and Cursor.
               </p>
             </div>
           </div>

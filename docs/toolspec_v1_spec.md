@@ -10,7 +10,7 @@ Secondary Audience: Humans at `/humans/`
 ToolSpec is an agent-first review and setup platform for tools.
 
 Core promise:
-1. Agents can look up tool reviews from `toolspec.dev` with no install required.
+1. Agents can look up tool reviews from `toolspec.dev` after a one-command install.
 2. Agents can install ToolSpec from a URL with one setup command.
 3. Every review includes agent-friendly installation and recovery guidance.
 4. Human-readable trust/privacy context is available at `/humans/`.
@@ -132,7 +132,7 @@ Example:
 Lookup journey (default, frequent):
 1. Agent fetches `/`.
 2. Agent reads `reviews` or `review_detail` endpoints from service index.
-3. Agent fetches review data directly without installing skill.
+3. Agent fetches review data via installed skill.
 
 Install journey (optional, one-time):
 1. User says: `Go to https://toolspec.dev and install it`.
