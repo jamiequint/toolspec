@@ -484,16 +484,12 @@ async function runInstall() {
   console.log(`CLI runtime: ${CLI_SCRIPT_PATH}`);
   console.log(`CLI version: ${CLI_STANDALONE_VERSION}`);
   console.log("Install completed local setup only (no install registration request).");
-  console.log("Draft preparation is deferred until `toolspec approve` (or run `toolspec prepare`).");
-  console.log("REQUIRED NEXT STEP: toolspec approve");
+  console.log("Search is available immediately: toolspec search <keyword>");
+  console.log("Optional contribution commands: toolspec prepare, toolspec approve, toolspec submit");
   console.log("Optional: toolspec verify");
 }
 
 async function runVerify() {
-  if (!hasInstallId(await readInstallRecord())) {
-    await ensureInstallRecord();
-  }
-
   const installRecord = await readInstallRecord();
   const installId = installRecord?.install_id;
   const suffix = typeof installId === "string" && installId.length > 0
@@ -551,18 +547,17 @@ async function runStatus() {
   const draft = await readDraft();
 
   if (state.approved_at_utc) {
-    console.log(`Approval status: approved at ${state.approved_at_utc}`);
+    console.log(`Contribution status: last submitted at ${state.approved_at_utc}`);
     console.log("Search enabled: toolspec search <keyword>");
   } else if (draft?.summary) {
-    console.log("Approval status: pending");
+    console.log("Contribution status: draft cached (not submitted)");
     console.log(
       `Draft summary: observed=${draft.summary.observed_count}, whitelist=${draft.summary.whitelist_count}, unknown=${draft.summary.unknown_count}, redacted=${draft.summary.redacted_count}`
     );
-    console.log("REQUIRED NEXT STEP: toolspec approve");
+    console.log("Optional next step: toolspec approve");
   } else {
-    console.log("Approval status: pending (no cached draft found)");
-    console.log("Run: toolspec prepare");
-    console.log("Then: toolspec approve");
+    console.log("Contribution status: no cached draft");
+    console.log("Optional: toolspec prepare");
   }
 
   const observed = getObservedToolSlugs();
@@ -640,11 +635,6 @@ async function runSearch(args) {
   const keyword = args.join(" ").trim();
   if (!keyword) {
     throw new Error("Usage: toolspec search <keyword>");
-  }
-
-  const state = await readState();
-  if (!state.approved_at_utc) {
-    throw new Error("Approval required before search. Run `toolspec approve` first.");
   }
 
   const payload = await requestJson("GET", "/api/reviews.json");

@@ -14,12 +14,12 @@
     "command": "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o \"$HOME/.toolspec/toolspec-cli.js\" && TOOLSPEC_CLI_SCRIPT=\"$HOME/.toolspec/toolspec-cli.js\" TOOLSPEC_CONFIG_DIR=\"$HOME/.toolspec\" TOOLSPEC_INSTALL_DIR=\"$HOME/.local/bin\" node \"$HOME/.toolspec/toolspec-cli.js\" install"
   },
   "post_install": {
-    "required": true,
+    "required": false,
     "steps": [
       {
         "command": "toolspec approve",
-        "required": true,
-        "description": "Approve and submit your local draft (auto-prepared if none is cached)."
+        "required": false,
+        "description": "Optional: submit a local contribution draft (auto-prepared if none is cached)."
       },
       {
         "command": "toolspec verify",
@@ -27,7 +27,7 @@
         "description": "Optional status check after approval."
       }
     ],
-    "required_message": "Installation is not complete until `toolspec approve` has been run at least once."
+    "required_message": "No activation is required for search and read-only usage."
   },
   "verify_command": "toolspec verify",
   "uninstall_command": "toolspec uninstall",
