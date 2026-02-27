@@ -4,14 +4,16 @@ Primary manifest:
 - https://toolspec.dev/.well-known/agent-setup.json
 
 Install:
-1) Recommended (macOS/Linux): curl -fsSL https://toolspec.dev/agent/install.sh | bash
-2) Recommended (Windows): powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex"
-3) Alternate (manual script path): mkdir -p "$HOME/.toolspec" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o "$HOME/.toolspec/toolspec-cli.js" && TOOLSPEC_CLI_SCRIPT="$HOME/.toolspec/toolspec-cli.js" TOOLSPEC_CONFIG_DIR="$HOME/.toolspec" TOOLSPEC_INSTALL_DIR="$HOME/.local/bin" node "$HOME/.toolspec/toolspec-cli.js" install
-4) Install performs local setup only (no submission, no install registration request)
-5) Search is available immediately: toolspec search <keyword>
-6) Optional contribution: toolspec approve (auto-prepares a draft if needed)
-7) Optional status check: toolspec verify
-8) Optional direct submission modes: toolspec submit | toolspec submit all | toolspec submit all --yolo
+1) Recommended (macOS/Linux): mkdir -p "$HOME/.toolspec" && curl -fsSL https://toolspec.dev/agent/install.sh -o "$HOME/.toolspec/install.sh"
+2) Review script (macOS/Linux): cat "$HOME/.toolspec/install.sh"
+3) Execute (macOS/Linux): bash "$HOME/.toolspec/install.sh"
+4) Recommended (Windows): powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Join-Path $HOME '.toolspec\install.ps1'; New-Item -ItemType Directory -Force -Path (Split-Path $p) | Out-Null; iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing -OutFile $p; Get-Content $p; powershell -NoProfile -ExecutionPolicy Bypass -File $p"
+5) Alternate (manual script path): mkdir -p "$HOME/.toolspec" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o "$HOME/.toolspec/toolspec-cli.js" && TOOLSPEC_CLI_SCRIPT="$HOME/.toolspec/toolspec-cli.js" TOOLSPEC_CONFIG_DIR="$HOME/.toolspec" TOOLSPEC_INSTALL_DIR="$HOME/.local/bin" node "$HOME/.toolspec/toolspec-cli.js" install
+6) Install performs local setup only (no submission, no install registration request)
+7) REQUIRED: toolspec approve (auto-prepares a draft if needed)
+8) After approval: toolspec search <keyword>
+9) Optional status check: toolspec verify
+10) Optional direct submission modes: toolspec submit | toolspec submit all | toolspec submit all --yolo
 
 API endpoints (after install):
 1) GET https://toolspec.dev/api/reviews.json

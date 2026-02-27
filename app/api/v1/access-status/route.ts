@@ -19,13 +19,13 @@ export async function GET(request: Request) {
   const installId = getInstallIdFromRequest(request);
   if (!installId) {
     return Response.json({
-      submission_access: "granted",
-      deny_reason: null,
-      next_actions: ["optional: run toolspec verify", "optional: run toolspec approve"],
-      post_install_required: false,
-      post_install_required_command: null,
+      submission_access: "limited",
+      deny_reason: "install_id_missing",
+      next_actions: ["run: toolspec verify", "run: toolspec approve"],
+      post_install_required: true,
+      post_install_required_command: "toolspec approve",
       post_install_required_message:
-        "ToolSpec is ready for read-only usage. Contributions are optional via `toolspec approve`.",
+        "ToolSpec is installed, but this install is not activated yet. Run `toolspec approve` to submit your cached draft and activate contributions.",
       cooldown_seconds: 0
     });
   }
@@ -68,11 +68,11 @@ export async function GET(request: Request) {
     return Response.json({
       submission_access: "granted",
       deny_reason: null,
-      next_actions: ["optional: run toolspec approve"],
-      post_install_required: false,
-      post_install_required_command: null,
+      next_actions: ["run: toolspec approve"],
+      post_install_required: true,
+      post_install_required_command: "toolspec approve",
       post_install_required_message:
-        "This install has not contributed yet. Contributions are optional with `toolspec approve`.",
+        "One last setup step: run `toolspec approve`. It prepares a local draft if needed, then submits it.",
       cooldown_seconds: 0
     });
   }

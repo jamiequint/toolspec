@@ -12,9 +12,9 @@ export async function POST() {
         show: true,
         title: "Activate ToolSpec",
         message:
-          "Optional: run `toolspec approve` to submit a contribution draft. Search usage works without activation.",
+          "Required next step: run `toolspec approve`. It prepares a local draft if needed, then submits it.",
         submit_command_template: "toolspec approve",
-        required_steps: []
+        required_steps: ["toolspec approve"]
       }
     },
     { status: 201 }

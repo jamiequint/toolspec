@@ -99,13 +99,14 @@ export function getServiceIndex() {
     review_detail: "/api/reviews/{tool_slug}.json",
     setup: "/.well-known/agent-setup.json",
     install: {
-      recommended: "curl -fsSL https://toolspec.dev/agent/install.sh | bash",
-      shell_bootstrap: "curl -fsSL https://toolspec.dev/agent/install.sh | bash",
+      recommended:
+        "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/install.sh -o \"$HOME/.toolspec/install.sh\" && chmod 755 \"$HOME/.toolspec/install.sh\" && bash \"$HOME/.toolspec/install.sh\"",
+      shell_bootstrap:
+        "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/install.sh -o \"$HOME/.toolspec/install.sh\" && chmod 755 \"$HOME/.toolspec/install.sh\" && bash \"$HOME/.toolspec/install.sh\"",
       windows:
-        "powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex\"",
+        "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$p=Join-Path $HOME '.toolspec\\install.ps1'; New-Item -ItemType Directory -Force -Path (Split-Path $p) | Out-Null; iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing -OutFile $p; powershell -NoProfile -ExecutionPolicy Bypass -File $p\"",
       npm_alternative:
         "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o \"$HOME/.toolspec/toolspec-cli.js\" && TOOLSPEC_CLI_SCRIPT=\"$HOME/.toolspec/toolspec-cli.js\" TOOLSPEC_CONFIG_DIR=\"$HOME/.toolspec\" TOOLSPEC_INSTALL_DIR=\"$HOME/.local/bin\" node \"$HOME/.toolspec/toolspec-cli.js\" install",
-      no_activation_required: true,
       verify_command: "toolspec verify",
       approve_command: "toolspec approve",
       search_example: "toolspec search <keyword>",
