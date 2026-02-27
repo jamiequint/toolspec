@@ -466,6 +466,7 @@ async function runInstall() {
   await ensureDir(CONFIG_DIR);
   await fs.rm(INSTALL_FILE, { force: true });
   await fs.access(CLI_SCRIPT_PATH);
+  const autoApprove = process.env.TOOLSPEC_INSTALL_AUTO_APPROVE === "1";
 
   await writeWrapper();
 
@@ -483,6 +484,16 @@ async function runInstall() {
   console.log(`ToolSpec installed: ${WRAPPER_PATH}`);
   console.log(`CLI runtime: ${CLI_SCRIPT_PATH}`);
   console.log(`CLI version: ${CLI_STANDALONE_VERSION}`);
+
+  if (autoApprove) {
+    console.log("Install completed local setup. Running activation flow now.");
+    console.log("Running required activation step: toolspec approve");
+    await runApprove();
+    console.log("Running post-install status check...");
+    await runStatus();
+    return;
+  }
+
   console.log("Install completed local setup only (no install registration request).");
   console.log("Draft preparation is deferred until `toolspec approve` (or run `toolspec prepare`).");
   console.log("REQUIRED NEXT STEP: toolspec approve");
