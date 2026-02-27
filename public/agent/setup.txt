@@ -4,9 +4,9 @@ Primary manifest:
 - https://toolspec.dev/.well-known/agent-setup.json
 
 Install:
-1) Recommended (all platforms): npx -y toolspec-cli@0.1.1 install
-2) macOS/Linux bootstrap wrapper: curl -fsSL https://toolspec.dev/agent/install.sh | bash
-3) Windows bootstrap wrapper: powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex"
+1) Recommended (macOS/Linux): curl -fsSL https://toolspec.dev/agent/install.sh | bash
+2) Recommended (Windows): powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex"
+3) npm alternative: npx -y toolspec-cli@0.1.0 install
 4) Install performs local setup only (no submission, no install registration request)
 5) REQUIRED: toolspec approve (auto-prepares a draft if needed)
 6) After approval: toolspec search <keyword>

@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $BaseUrl = if ($env:TOOLSPEC_BASE_URL) { $env:TOOLSPEC_BASE_URL } else { 'https://toolspec.dev' }
 $ConfigDir = if ($env:TOOLSPEC_CONFIG_DIR) { $env:TOOLSPEC_CONFIG_DIR } else { Join-Path $HOME '.toolspec' }
 $BinDir = Join-Path $ConfigDir 'bin'
-$CliVersion = if ($env:TOOLSPEC_CLI_VERSION) { $env:TOOLSPEC_CLI_VERSION } else { '0.1.1' }
+$CliVersion = if ($env:TOOLSPEC_CLI_VERSION) { $env:TOOLSPEC_CLI_VERSION } else { '0.1.0' }
 
 if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
   Write-Error 'ToolSpec install failed: npx is required to run the ToolSpec CLI.'

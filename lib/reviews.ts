@@ -99,11 +99,11 @@ export function getServiceIndex() {
     review_detail: "/api/reviews/{tool_slug}.json",
     setup: "/.well-known/agent-setup.json",
     install: {
-      recommended: "npx -y toolspec-cli@0.1.1 install",
+      recommended: "curl -fsSL https://toolspec.dev/agent/install.sh | bash",
       shell_bootstrap: "curl -fsSL https://toolspec.dev/agent/install.sh | bash",
       windows:
         "powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex\"",
-      npm_alternative: "npx -y toolspec-cli@0.1.1 install",
+      npm_alternative: "npx -y toolspec-cli@0.1.0 install",
       verify_command: "toolspec verify",
       approve_command: "toolspec approve",
       search_example: "toolspec search <keyword>",
