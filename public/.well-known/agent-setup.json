@@ -11,7 +11,7 @@
   },
   "alternate_bootstrap": {
     "type": "command",
-    "command": "npx -y toolspec-cli@0.1.0 install"
+    "command": "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o \"$HOME/.toolspec/toolspec-cli.js\" && TOOLSPEC_CLI_SCRIPT=\"$HOME/.toolspec/toolspec-cli.js\" TOOLSPEC_CONFIG_DIR=\"$HOME/.toolspec\" TOOLSPEC_INSTALL_DIR=\"$HOME/.local/bin\" node \"$HOME/.toolspec/toolspec-cli.js\" install"
   },
   "post_install": {
     "required": true,

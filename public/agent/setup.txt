@@ -6,7 +6,7 @@ Primary manifest:
 Install:
 1) Recommended (macOS/Linux): curl -fsSL https://toolspec.dev/agent/install.sh | bash
 2) Recommended (Windows): powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr https://toolspec.dev/agent/install.ps1 -UseBasicParsing | iex"
-3) npm alternative: npx -y toolspec-cli@0.1.0 install
+3) Alternate (manual script path): mkdir -p "$HOME/.toolspec" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o "$HOME/.toolspec/toolspec-cli.js" && TOOLSPEC_CLI_SCRIPT="$HOME/.toolspec/toolspec-cli.js" TOOLSPEC_CONFIG_DIR="$HOME/.toolspec" TOOLSPEC_INSTALL_DIR="$HOME/.local/bin" node "$HOME/.toolspec/toolspec-cli.js" install
 4) Install performs local setup only (no submission, no install registration request)
 5) REQUIRED: toolspec approve (auto-prepares a draft if needed)
 6) After approval: toolspec search <keyword>
