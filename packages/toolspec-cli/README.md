@@ -5,7 +5,8 @@ CLI for ToolSpec install, verification, review submission, and uninstall.
 ## Usage
 
 ```bash
-npx -y toolspec-cli@latest install
+npx -y toolspec-cli@0.1.1 install
+toolspec prepare # optional, approve auto-prepares if missing
 toolspec verify
 toolspec approve
 toolspec search linear

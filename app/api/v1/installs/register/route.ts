@@ -12,7 +12,7 @@ export async function POST() {
         show: true,
         title: "Activate ToolSpec",
         message:
-          "Required next step: run `toolspec approve`. Install prepares a local draft automatically; approval submits it.",
+          "Required next step: run `toolspec approve`. It prepares a local draft if needed, then submits it.",
         submit_command_template: "toolspec approve",
         required_steps: ["toolspec approve"]
       }

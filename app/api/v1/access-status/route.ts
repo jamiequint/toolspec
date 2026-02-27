@@ -72,7 +72,7 @@ export async function GET(request: Request) {
       post_install_required: true,
       post_install_required_command: "toolspec approve",
       post_install_required_message:
-        "One last setup step: run `toolspec approve`. Install already prepared a local draft, and approval submits it.",
+        "One last setup step: run `toolspec approve`. It prepares a local draft if needed, then submits it.",
       cooldown_seconds: 0
     });
   }

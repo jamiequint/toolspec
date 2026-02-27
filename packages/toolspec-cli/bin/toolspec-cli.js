@@ -6,12 +6,14 @@ const os = require("node:os");
 const crypto = require("node:crypto");
 const readline = require("node:readline/promises");
 const { stdin, stdout } = require("node:process");
+const { version: CLI_PACKAGE_VERSION } = require("../package.json");
 
 const BASE_URL = process.env.TOOLSPEC_BASE_URL || "https://toolspec.dev";
 const CONFIG_DIR = process.env.TOOLSPEC_CONFIG_DIR || path.join(os.homedir(), ".toolspec");
 const INSTALL_FILE = path.join(CONFIG_DIR, "install.json");
 const STATE_FILE = path.join(CONFIG_DIR, "state.json");
 const DRAFT_FILE = path.join(CONFIG_DIR, "review-draft.json");
+const CLI_NPX_TARGET = `toolspec-cli@${CLI_PACKAGE_VERSION}`;
 
 const BIN_DIR =
   process.platform === "win32"
@@ -66,7 +68,7 @@ const PUBLIC_TOOL_WHITELIST = new Set([
 
 function usage() {
   console.log(
-    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec approve\n  toolspec search <keyword>\n  toolspec submit\n  toolspec submit all\n  toolspec submit all --yolo\n  toolspec uninstall"
+    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec prepare\n  toolspec approve\n  toolspec search <keyword>\n  toolspec submit\n  toolspec submit all\n  toolspec submit all --yolo\n  toolspec uninstall"
   );
 }
 
@@ -222,12 +224,46 @@ async function ensureDir(dirPath) {
   await fs.mkdir(dirPath, { recursive: true });
 }
 
+function escapeForShellDoubleQuoted(value) {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\$/g, "\\$")
+    .replace(/`/g, "\\`");
+}
+
+function escapeForCmdSet(value) {
+  return String(value).replace(/"/g, '""');
+}
+
 function createWrapperContent() {
+  const escapedBaseUrl = escapeForShellDoubleQuoted(BASE_URL);
+  const escapedConfigDir = escapeForShellDoubleQuoted(CONFIG_DIR);
+  const escapedBinDir = escapeForShellDoubleQuoted(BIN_DIR);
+
   if (process.platform === "win32") {
-    return "@echo off\r\nnpx -y toolspec-cli@latest %*\r\n";
+    const cmdBaseUrl = escapeForCmdSet(BASE_URL);
+    const cmdConfigDir = escapeForCmdSet(CONFIG_DIR);
+    const cmdBinDir = escapeForCmdSet(BIN_DIR);
+    return [
+      "@echo off",
+      `set "TOOLSPEC_BASE_URL=${cmdBaseUrl}"`,
+      `set "TOOLSPEC_CONFIG_DIR=${cmdConfigDir}"`,
+      `set "TOOLSPEC_INSTALL_DIR=${cmdBinDir}"`,
+      `npx -y ${CLI_NPX_TARGET} %*`,
+      ""
+    ].join("\r\n");
   }
 
-  return "#!/usr/bin/env bash\nset -euo pipefail\nnpx -y toolspec-cli@latest \"$@\"\n";
+  return [
+    "#!/usr/bin/env bash",
+    "set -euo pipefail",
+    `export TOOLSPEC_BASE_URL="${escapedBaseUrl}"`,
+    `export TOOLSPEC_CONFIG_DIR="${escapedConfigDir}"`,
+    `export TOOLSPEC_INSTALL_DIR="${escapedBinDir}"`,
+    `npx -y ${CLI_NPX_TARGET} "$@"`,
+    ""
+  ].join("\n");
 }
 
 async function writeWrapper() {
@@ -236,6 +272,25 @@ async function writeWrapper() {
   if (process.platform !== "win32") {
     await fs.chmod(WRAPPER_PATH, 0o755);
   }
+}
+
+function hasInstallId(installRecord) {
+  return typeof installRecord?.install_id === "string" && installRecord.install_id.length > 0;
+}
+
+async function registerInstallRecord() {
+  const payload = await requestJson("POST", "/api/v1/installs/register", {});
+  await writeJsonFile(INSTALL_FILE, payload);
+  return payload;
+}
+
+async function ensureInstallRecord() {
+  const installRecord = await readInstallRecord();
+  if (hasInstallId(installRecord)) {
+    return installRecord;
+  }
+
+  return registerInstallRecord();
 }
 
 function parseSubmitArgs(args) {
@@ -405,17 +460,7 @@ async function runPrepare({ silent = false } = {}) {
 
 async function runInstall() {
   await ensureDir(CONFIG_DIR);
-
-  let registerPayload = null;
-  try {
-    registerPayload = await requestJson("POST", "/api/v1/installs/register", {});
-    await fs.writeFile(INSTALL_FILE, JSON.stringify(registerPayload, null, 2), "utf8");
-  } catch (error) {
-    console.warn("ToolSpec warning: install registration failed; continuing with local CLI setup.");
-    if (error.details) {
-      console.warn(JSON.stringify(error.details, null, 2));
-    }
-  }
+  await fs.rm(INSTALL_FILE, { force: true });
 
   await writeWrapper();
 
@@ -430,26 +475,19 @@ async function runInstall() {
     console.log(`  ${BIN_DIR}`);
   }
 
-  await runPrepare({ silent: true });
-
   console.log(`ToolSpec installed: ${WRAPPER_PATH}`);
-  const promptMessage = registerPayload?.post_install_prompt?.message;
-  if (typeof promptMessage === "string" && promptMessage.length > 0) {
-    console.log(promptMessage);
-  }
-  console.log("Prepared draft: yes (not submitted)");
+  console.log(`CLI version pinned in wrapper: ${CLI_PACKAGE_VERSION}`);
+  console.log("Install completed local setup only (no install registration request).");
+  console.log("Draft preparation is deferred until `toolspec approve` (or run `toolspec prepare`).");
   console.log("REQUIRED NEXT STEP: toolspec approve");
   console.log("Optional: toolspec verify");
-  console.log("");
-  console.log("Running post-install status check...");
-  try {
-    await runStatus();
-  } catch {
-    console.log("Could not run status automatically. Run: toolspec status");
-  }
 }
 
 async function runVerify() {
+  if (!hasInstallId(await readInstallRecord())) {
+    await ensureInstallRecord();
+  }
+
   const installRecord = await readInstallRecord();
   const installId = installRecord?.install_id;
   const suffix = typeof installId === "string" && installId.length > 0
@@ -543,7 +581,17 @@ async function runApprove() {
     draft = await runPrepare({ silent: true });
   }
 
-  const response = await requestJson("POST", "/api/v1/reviews/submit", draft.payload);
+  let installRecord = await readInstallRecord();
+  if (!hasInstallId(installRecord)) {
+    installRecord = await ensureInstallRecord();
+  }
+
+  const payload = {
+    ...draft.payload,
+    install_id: installRecord.install_id
+  };
+
+  const response = await requestJson("POST", "/api/v1/reviews/submit", payload);
   console.log(JSON.stringify(response, null, 2));
 
   const now = new Date().toISOString();
@@ -557,6 +605,7 @@ async function runApprove() {
 
   await writeDraft({
     ...draft,
+    payload,
     approved_at_utc: now,
     approved_review_id: response?.review_id || null
   });
@@ -618,7 +667,7 @@ async function runSearch(args) {
 
 async function runSubmit(rawArgs) {
   const { mode, yolo } = parseSubmitArgs(rawArgs);
-  const installRecord = await readInstallRecord();
+  const installRecord = await ensureInstallRecord();
   const installId = typeof installRecord?.install_id === "string" ? installRecord.install_id : undefined;
 
   const now = new Date().toISOString();

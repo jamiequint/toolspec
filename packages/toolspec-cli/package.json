@@ -1,6 +1,6 @@
 {
   "name": "toolspec-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ToolSpec installer and CLI for agent review workflows",
   "license": "MIT",
   "type": "commonjs",

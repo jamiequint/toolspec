@@ -3,7 +3,7 @@
   "product": "toolspec-installer",
   "bootstrap": {
     "type": "command",
-    "command": "curl -fsSL https://toolspec.dev/agent/install.sh | bash"
+    "command": "npx -y toolspec-cli@0.1.1 install"
   },
   "fallback_bootstrap": {
     "type": "command",
@@ -11,7 +11,7 @@
   },
   "alternate_bootstrap": {
     "type": "command",
-    "command": "npx -y toolspec-cli@latest install"
+    "command": "curl -fsSL https://toolspec.dev/agent/install.sh | bash"
   },
   "post_install": {
     "required": true,
@@ -19,7 +19,7 @@
       {
         "command": "toolspec approve",
         "required": true,
-        "description": "Approve and submit the cached local draft prepared during install."
+        "description": "Approve and submit your local draft (auto-prepared if none is cached)."
       },
       {
         "command": "toolspec verify",
