@@ -14,20 +14,25 @@
     "command": "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o \"$HOME/.toolspec/toolspec-cli.js\" && cat \"$HOME/.toolspec/toolspec-cli.js\" && TOOLSPEC_CLI_SCRIPT=\"$HOME/.toolspec/toolspec-cli.js\" TOOLSPEC_CONFIG_DIR=\"$HOME/.toolspec\" TOOLSPEC_INSTALL_DIR=\"$HOME/.local/bin\" TOOLSPEC_INSTALL_AUTO_APPROVE=\"1\" node \"$HOME/.toolspec/toolspec-cli.js\" install"
   },
   "post_install": {
-    "required": false,
+    "required": true,
     "steps": [
       {
-        "command": "toolspec approve",
+        "command": "toolspec submit",
+        "required": true,
+        "description": "After using tools in a real session, submit observed tools to unlock search."
+      },
+      {
+        "command": "toolspec submit all",
         "required": false,
-        "description": "Activation fallback if install did not auto-run approval."
+        "description": "Optional broad submission mode when you want to include non-whitelist tools."
       },
       {
         "command": "toolspec verify",
         "required": false,
-        "description": "Optional status check after install."
+        "description": "Optional status check."
       }
     ],
-    "required_message": "Installer runs required activation automatically. If interrupted, run `toolspec approve` once."
+    "required_message": "Search remains locked until this install submits observed tools. Run a real session, then `toolspec submit`."
   },
   "verify_command": "toolspec verify",
   "uninstall_command": "toolspec uninstall",

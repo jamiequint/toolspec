@@ -16,12 +16,17 @@ type SubmissionRow = QueryResultRow & {
 
 type InstallStatusRow = QueryResultRow & {
   install_id: string;
-  first_submission_at: string | null;
   revoked_at: string | null;
+};
+
+type InstallSubmissionStatusRow = QueryResultRow & {
+  first_any_submission_at: string | null;
+  first_meaningful_submission_at: string | null;
 };
 
 const fallbackInstalls = new Map<string, {
   install_secret: string;
+  any_submission_at: string | null;
   first_submission_at: string | null;
   revoked_at: string | null;
 }>();
@@ -203,11 +208,19 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
   validatedToolUseCount: number;
   duplicate: boolean;
 }> {
+  const hasMeaningfulObservedTools = Array.isArray(submission.observed_tool_slugs)
+    && submission.observed_tool_slugs.length > 0;
+
   if (!hasDatabaseUrl()) {
     if (submission.install_id) {
       const existing = fallbackInstalls.get(submission.install_id);
-      if (existing && !existing.first_submission_at) {
-        existing.first_submission_at = new Date().toISOString();
+      if (existing) {
+        if (!existing.any_submission_at) {
+          existing.any_submission_at = new Date().toISOString();
+        }
+        if (hasMeaningfulObservedTools && !existing.first_submission_at) {
+          existing.first_submission_at = new Date().toISOString();
+        }
         fallbackInstalls.set(submission.install_id, existing);
       }
     }
@@ -251,7 +264,7 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
     ]
   );
 
-  if (submission.install_id) {
+  if (submission.install_id && hasMeaningfulObservedTools) {
     await getPool().query(
       `
         UPDATE tool_installs
@@ -297,6 +310,7 @@ export async function createInstallRecord() {
   if (!hasDatabaseUrl()) {
     fallbackInstalls.set(installId, {
       install_secret: installSecret,
+      any_submission_at: null,
       first_submission_at: null,
       revoked_at: null
     });
@@ -352,6 +366,7 @@ export async function getInstallStatus(installId: string) {
       return {
         found: false,
         revoked: false,
+        hasAnySubmission: false,
         firstSubmissionCompleted: false,
         firstSubmissionAt: null as string | null
       };
@@ -360,6 +375,7 @@ export async function getInstallStatus(installId: string) {
     return {
       found: true,
       revoked: !!install.revoked_at,
+      hasAnySubmission: !!install.any_submission_at,
       firstSubmissionCompleted: !!install.first_submission_at,
       firstSubmissionAt: install.first_submission_at
     };
@@ -368,7 +384,7 @@ export async function getInstallStatus(installId: string) {
   await ensureDbReady();
   const rowResult = await getPool().query<InstallStatusRow>(
     `
-      SELECT install_id, first_submission_at::text, revoked_at::text
+      SELECT install_id, revoked_at::text
       FROM tool_installs
       WHERE install_id = $1
       LIMIT 1
@@ -381,16 +397,37 @@ export async function getInstallStatus(installId: string) {
     return {
       found: false,
       revoked: false,
+      hasAnySubmission: false,
       firstSubmissionCompleted: false,
       firstSubmissionAt: null as string | null
     };
   }
 
+  const submissionResult = await getPool().query<InstallSubmissionStatusRow>(
+    `
+      SELECT
+        MIN(submitted_at)::text AS first_any_submission_at,
+        MIN(
+          CASE
+            WHEN jsonb_typeof(submission_json->'observed_tool_slugs') = 'array'
+              AND jsonb_array_length(submission_json->'observed_tool_slugs') > 0
+            THEN submitted_at
+            ELSE NULL
+          END
+        )::text AS first_meaningful_submission_at
+      FROM review_submissions
+      WHERE install_id = $1
+    `,
+    [installId]
+  );
+  const submissionRow = submissionResult.rows[0];
+
   return {
     found: true,
     revoked: !!row.revoked_at,
-    firstSubmissionCompleted: !!row.first_submission_at,
-    firstSubmissionAt: row.first_submission_at
+    hasAnySubmission: !!submissionRow?.first_any_submission_at,
+    firstSubmissionCompleted: !!submissionRow?.first_meaningful_submission_at,
+    firstSubmissionAt: submissionRow?.first_meaningful_submission_at ?? null
   };
 }
 

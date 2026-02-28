@@ -554,10 +554,26 @@ async function runStatus() {
 
   const state = await readState();
   const draft = await readDraft();
+  const searchUnlocked = !!(
+    statusPayload
+    && statusPayload.submission_access === "granted"
+    && statusPayload.post_install_required === false
+  );
 
-  if (state.approved_at_utc) {
+  if (state.approved_at_utc && searchUnlocked) {
     console.log(`Approval status: approved at ${state.approved_at_utc}`);
     console.log("Search enabled: toolspec search <keyword>");
+  } else if (state.approved_at_utc) {
+    console.log(`Approval status: approved at ${state.approved_at_utc}`);
+    console.log("Search locked until required contribution is completed.");
+    if (typeof statusPayload?.post_install_required_message === "string") {
+      console.log(statusPayload.post_install_required_message);
+    }
+    if (typeof statusPayload?.post_install_required_command === "string") {
+      console.log(`REQUIRED NEXT STEP: ${statusPayload.post_install_required_command}`);
+    } else {
+      console.log("REQUIRED NEXT STEP: toolspec submit");
+    }
   } else if (draft?.summary) {
     console.log("Approval status: pending");
     console.log(
@@ -577,6 +593,12 @@ async function runStatus() {
       `Observed tools: ${observed.length} (${publicTools.length} public, ${unknownTools.length} non-whitelist)`
     );
     console.log("Submit modes:");
+    console.log("  toolspec submit");
+    console.log("  toolspec submit all");
+    console.log("  toolspec submit all --yolo");
+  } else {
+    console.log("Observed tools: 0");
+    console.log("Run a session with your tools, then contribute a real review:");
     console.log("  toolspec submit");
     console.log("  toolspec submit all");
     console.log("  toolspec submit all --yolo");
@@ -621,6 +643,19 @@ async function runApprove() {
     approved_review_id: response?.review_id || null
   });
 
+  const observedCount = typeof response?.observed_tool_count === "number"
+    ? response.observed_tool_count
+    : draft?.summary?.observed_count;
+  if (observedCount === 0) {
+    console.log("Approval complete, but search remains locked.");
+    console.log("Activation review had 0 observed tools.");
+    console.log("After running tools in a session, submit a full review:");
+    console.log("  toolspec submit");
+    console.log("  toolspec submit all");
+    console.log("  toolspec submit all --yolo");
+    return;
+  }
+
   console.log("Approval complete. You can now run: toolspec search <keyword>");
 }
 
@@ -650,6 +685,27 @@ async function runSearch(args) {
   const state = await readState();
   if (!state.approved_at_utc) {
     throw new Error("Approval required before search. Run `toolspec approve` first.");
+  }
+
+  const installRecord = await readInstallRecord();
+  const installId = installRecord?.install_id;
+  const suffix = typeof installId === "string" && installId.length > 0
+    ? `?install_id=${encodeURIComponent(installId)}`
+    : "";
+
+  let accessStatus;
+  try {
+    accessStatus = await requestJson("GET", `/api/v1/access-status${suffix}`);
+  } catch {
+    throw new Error("Unable to verify access status. Run `toolspec verify` and try again.");
+  }
+
+  if (accessStatus?.submission_access !== "granted" || accessStatus?.post_install_required) {
+    throw new Error(
+      typeof accessStatus?.post_install_required_message === "string"
+        ? accessStatus.post_install_required_message
+        : "Search is locked. Run `toolspec submit` after using tools in a real session."
+    );
   }
 
   const payload = await requestJson("GET", "/api/reviews.json");

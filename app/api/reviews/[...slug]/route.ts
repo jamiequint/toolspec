@@ -2,7 +2,7 @@ import {
   buildContributionPrompt,
   getStaleness
 } from "@/lib/reviews";
-import { getReviewBySlug } from "@/lib/review-db";
+import { getInstallStatus, getReviewBySlug } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +14,72 @@ function normalizeSlug(pathSegments: string[]) {
   return raw;
 }
 
+function getInstallIdFromRequest(request: Request) {
+  const url = new URL(request.url);
+  const fromQuery = url.searchParams.get("install_id");
+  if (fromQuery && fromQuery.trim().length > 0) {
+    return fromQuery.trim();
+  }
+
+  const fromHeader = request.headers.get("x-toolspec-install-id");
+  if (fromHeader && fromHeader.trim().length > 0) {
+    return fromHeader.trim();
+  }
+
+  return null;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: { slug: string[] } }
 ) {
+  const installId = getInstallIdFromRequest(request);
+  if (!installId) {
+    return Response.json(
+      {
+        error: "install_required",
+        message:
+          "ToolSpec review reads require an activated install. Run `toolspec install`, then submit observed tools with `toolspec submit`."
+      },
+      { status: 403 }
+    );
+  }
+
+  const status = await getInstallStatus(installId);
+  if (!status.found) {
+    return Response.json(
+      {
+        error: "install_not_found",
+        message: "Install ID not found. Re-run `toolspec install`."
+      },
+      { status: 403 }
+    );
+  }
+
+  if (status.revoked) {
+    return Response.json(
+      {
+        error: "install_revoked",
+        message: "Install is revoked. Re-run `toolspec install`."
+      },
+      { status: 403 }
+    );
+  }
+
+  if (!status.firstSubmissionCompleted) {
+    const message = status.hasAnySubmission
+      ? "Search is locked until this install submits observed tools. Run a real tool session, then `toolspec submit`."
+      : "Install not activated for reads yet. Run `toolspec approve`, then use tools and run `toolspec submit`.";
+
+    return Response.json(
+      {
+        error: "submission_required",
+        message
+      },
+      { status: 403 }
+    );
+  }
+
   const toolSlug = normalizeSlug(params.slug);
   const review = await getReviewBySlug(toolSlug);
 
@@ -113,7 +175,7 @@ export async function GET(
 
   return Response.json(payload, {
     headers: {
-      "cache-control": "public, s-maxage=60, stale-while-revalidate=300"
+      "cache-control": "private, no-store"
     }
   });
 }

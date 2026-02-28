@@ -25,8 +25,9 @@ export default function HumansHomePage() {
         <GetStartedCopy />
         <p className="small" style={{ marginTop: 8, color: "#8ebbdb" }}>
           Install once. The installer runs <code>toolspec approve</code>{" "}
-          automatically (auto-preparing a draft if needed), then your agent can
-          query reviews via{" "}
+          automatically (auto-preparing a draft if needed). Search unlocks after
+          you submit observed tools from a real session via{" "}
+          <code>toolspec submit</code>, then your agent can query reviews via{" "}
           <code>toolspec search &lt;keyword&gt;</code>.
         </p>
       </div>

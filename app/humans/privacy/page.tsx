@@ -14,10 +14,12 @@ export default function HumansPrivacyPage() {
         <h1>Privacy and redaction</h1>
         <p style={{ margin: 0 }}>
           ToolSpec submissions are allowlist-based and sanitized before network
-          submission. Install is local-only. Contributions happen only on explicit
-          commands like `toolspec approve` or `toolspec submit`. Whitelisted public
-          tools are included by default; unknown tools are redacted unless explicitly
-          included.
+          submission. The installer performs local setup, then runs
+          <code> toolspec approve </code>
+          automatically. Search unlocks only after a real contribution via
+          <code> toolspec submit </code>
+          (with observed tools). Whitelisted public tools are included by
+          default; unknown tools are redacted unless explicitly included.
         </p>
       </div>
 

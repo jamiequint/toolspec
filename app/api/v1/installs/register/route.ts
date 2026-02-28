@@ -10,11 +10,11 @@ export async function POST() {
       secret_version: created.secretVersion,
       post_install_prompt: {
         show: true,
-        title: "Activate ToolSpec",
+        title: "Unlock ToolSpec Search",
         message:
-          "Required next step: run `toolspec approve`. It prepares a local draft if needed, then submits it.",
-        submit_command_template: "toolspec approve",
-        required_steps: ["toolspec approve"]
+          "Required next step: run your tools in a real session, then run `toolspec submit`.",
+        submit_command_template: "toolspec submit",
+        required_steps: ["toolspec submit"]
       }
     },
     { status: 201 }

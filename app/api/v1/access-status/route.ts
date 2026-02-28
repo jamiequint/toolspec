@@ -65,9 +65,25 @@ export async function GET(request: Request) {
   }
 
   if (!status.firstSubmissionCompleted) {
+    if (status.hasAnySubmission) {
+      return Response.json({
+        submission_access: "limited",
+        deny_reason: "meaningful_submission_required",
+        next_actions: [
+          "use your tools in a real session",
+          "run: toolspec submit"
+        ],
+        post_install_required: true,
+        post_install_required_command: "toolspec submit",
+        post_install_required_message:
+          "Search is still locked for this install. Submit at least one observed tool (`toolspec submit`) after a real session to unlock review reads.",
+        cooldown_seconds: 0
+      });
+    }
+
     return Response.json({
-      submission_access: "granted",
-      deny_reason: null,
+      submission_access: "limited",
+      deny_reason: "initial_submission_required",
       next_actions: ["run: toolspec approve"],
       post_install_required: true,
       post_install_required_command: "toolspec approve",

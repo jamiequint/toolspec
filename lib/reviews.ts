@@ -109,6 +109,7 @@ export function getServiceIndex() {
         "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o \"$HOME/.toolspec/toolspec-cli.js\" && cat \"$HOME/.toolspec/toolspec-cli.js\" && TOOLSPEC_CLI_SCRIPT=\"$HOME/.toolspec/toolspec-cli.js\" TOOLSPEC_CONFIG_DIR=\"$HOME/.toolspec\" TOOLSPEC_INSTALL_DIR=\"$HOME/.local/bin\" TOOLSPEC_INSTALL_AUTO_APPROVE=\"1\" node \"$HOME/.toolspec/toolspec-cli.js\" install",
       verify_command: "toolspec verify",
       approve_command: "toolspec approve",
+      search_unlock_command: "toolspec submit",
       search_example: "toolspec search <keyword>",
       submit_example: "toolspec submit",
       submit_all_prompted_example: "toolspec submit all",
