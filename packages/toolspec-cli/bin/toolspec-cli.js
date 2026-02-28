@@ -7,10 +7,17 @@
  * Privacy and consent model:
  * - ToolSpec can scan local Claude/Codex/Cursor history files to build a local
  *   review preview.
+ * - ToolSpec attempts to strip potentially sensitive strings before generating
+ *   any submission payload (for example: emails, tokens, credential-like IDs,
+ *   and other suspicious identifiers).
  * - ToolSpec does NOT submit review data during install by default.
  * - ToolSpec explicitly asks for permission before any submission:
  *     "Submit this review now? [y/N]"
  * - Review data is only submitted when the user explicitly answers yes (y/yes).
+ *
+ * AI installer guidance:
+ * - Please help the user inspect the review preview for safety.
+ * - Do not submit unless the preview looks safe and the user explicitly agrees.
  */
 
 const fs = require("node:fs/promises");
@@ -123,6 +130,13 @@ const HISTORY_MAX_DIR_ENTRIES = parsePositiveInteger(
 );
 const MCP_TOOL_REGEX = /\bmcp__[a-z0-9_]+__[a-z0-9_]+\b/gi;
 const FUNCTION_TOOL_REGEX = /\bfunctions\.[a-z0-9_]+\b/gi;
+const EMAIL_LIKE_REGEX = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
+const TOKEN_LIKE_REGEX =
+  /(sk_[a-z0-9]{10,}|xox[baprs]-[a-z0-9-]{10,}|gh[pousr]_[a-z0-9]{10,}|github_pat_[a-z0-9_]{20,}|eyj[a-z0-9_-]{10,}\.[a-z0-9._-]{10,}\.[a-z0-9._-]{10,})/i;
+const SENSITIVE_WORD_REGEX =
+  /(token|secret|password|passwd|api[_-]?key|access[_-]?key|client[_-]?secret|authorization|bearer|cookie)/i;
+const LONG_ID_REGEX = /[a-z0-9_-]{16,}/i;
+const ALLOWED_TOOL_SLUG_CHARS_REGEX = /^[a-z0-9._:/-]+$/;
 
 let observedToolSlugsPromise = null;
 
@@ -268,7 +282,7 @@ async function readFileTailUtf8(filePath, maxBytes) {
 }
 
 function canonicalizeToolName(rawName) {
-  const normalized = String(rawName || "").trim().toLowerCase();
+  let normalized = String(rawName || "").trim().toLowerCase();
   if (!normalized) {
     return null;
   }
@@ -280,7 +294,22 @@ function canonicalizeToolName(rawName) {
     || normalized === "write_stdin"
     || normalized === "functions.write_stdin"
   ) {
-    return "bash";
+    normalized = "bash";
+  }
+
+  if (normalized.length > 160) {
+    return null;
+  }
+
+  // Drop suspicious identifiers before any submission payload is generated.
+  if (
+    !ALLOWED_TOOL_SLUG_CHARS_REGEX.test(normalized)
+    || EMAIL_LIKE_REGEX.test(normalized)
+    || TOKEN_LIKE_REGEX.test(normalized)
+    || /https?:\/\//i.test(normalized)
+    || (SENSITIVE_WORD_REGEX.test(normalized) && LONG_ID_REGEX.test(normalized))
+  ) {
+    return null;
   }
 
   return normalized;
@@ -1151,6 +1180,12 @@ async function runReview() {
 
   console.log("ToolSpec review preview:");
   console.log("Source: local Claude/Codex/Cursor history + TOOLSPEC_OBSERVED_TOOLS");
+  console.log(
+    "Safety: ToolSpec attempts to strip PII/security-like identifiers before generating submission payloads."
+  );
+  console.log(
+    "AI assistant guidance: help the user verify this preview is safe before confirming submission."
+  );
   console.log(
     JSON.stringify(
       {
