@@ -10,6 +10,8 @@
  * - ToolSpec attempts to strip potentially sensitive strings before generating
  *   any submission payload (for example: emails, tokens, credential-like IDs,
  *   and other suspicious identifiers).
+ * - ToolSpec also asks the installer AI/human to do a second-pass safety
+ *   review of the preview before submission.
  * - ToolSpec does NOT submit review data during install by default.
  * - ToolSpec explicitly asks for permission before any submission:
  *     "Submit this review now? [y/N]"
@@ -18,6 +20,7 @@
  * AI installer guidance:
  * - Please help the user inspect the review preview for safety.
  * - Do not submit unless the preview looks safe and the user explicitly agrees.
+ * - You can add forced redactions via prompt or TOOLSPEC_EXTRA_REDACT_SLUGS.
  */
 
 const fs = require("node:fs/promises");
@@ -965,6 +968,30 @@ async function promptYesNo(question) {
   }
 }
 
+function parseAdditionalRedactions(raw) {
+  return uniq(
+    parseCsvList(raw || "")
+      .map(canonicalizeToolName)
+      .filter(Boolean)
+  );
+}
+
+async function promptAdditionalRedactions() {
+  if (!stdin.isTTY || !stdout.isTTY) {
+    return null;
+  }
+
+  const rl = readline.createInterface({ input: stdin, output: stdout });
+  try {
+    const answer = await rl.question(
+      "Extra redactions before submit (comma-separated tool slugs, Enter for none): "
+    );
+    return parseAdditionalRedactions(answer);
+  } finally {
+    rl.close();
+  }
+}
+
 async function runStatus() {
   let statusPayload = null;
   const installRecord = await readInstallRecord();
@@ -1116,8 +1143,17 @@ async function runSearch(args) {
   }
 }
 
-async function runSubmit(rawArgs) {
+async function runSubmit(rawArgs, options = {}) {
   const { mode, yolo } = parseSubmitArgs(rawArgs);
+  const extraRedactionsFromOptions = Array.isArray(options.extraRedactions)
+    ? options.extraRedactions
+    : [];
+  const extraRedactionsFromEnv = parseAdditionalRedactions(process.env.TOOLSPEC_EXTRA_REDACT_SLUGS || "");
+  const extraRedactions = uniq(
+    [...extraRedactionsFromOptions, ...extraRedactionsFromEnv]
+      .map(canonicalizeToolName)
+      .filter(Boolean)
+  );
   const installRecord = await ensureInstallRecord();
   const installId = typeof installRecord?.install_id === "string" ? installRecord.install_id : undefined;
 
@@ -1144,6 +1180,16 @@ async function runSubmit(rawArgs) {
         );
       }
     }
+  }
+
+  if (extraRedactions.length > 0) {
+    const forceRedactSet = new Set(extraRedactions);
+    redactedToolSlugs = uniq([
+      ...redactedToolSlugs,
+      ...includedTools.filter((slug) => forceRedactSet.has(slug)),
+      ...unknownTools.filter((slug) => forceRedactSet.has(slug))
+    ]);
+    includedTools = includedTools.filter((slug) => !forceRedactSet.has(slug));
   }
 
   const submittedTools = uniq(includedTools);
@@ -1193,6 +1239,9 @@ async function runReview() {
     "AI assistant guidance: help the user verify this preview is safe before confirming submission."
   );
   console.log(
+    "AI safety checkpoint: apply a second-pass redaction review and remove anything even slightly sensitive."
+  );
+  console.log(
     JSON.stringify(
       {
         observed_tools: observedTools.length,
@@ -1219,9 +1268,20 @@ async function runReview() {
     console.log("If your history lives elsewhere, set TOOLSPEC_HISTORY_PATHS and re-run `toolspec review`.");
   }
 
+  let extraRedactions = [];
+  const promptedExtraRedactions = await promptAdditionalRedactions();
+  if (Array.isArray(promptedExtraRedactions)) {
+    extraRedactions = promptedExtraRedactions;
+    if (extraRedactions.length > 0) {
+      console.log(`Extra redactions requested: ${extraRedactions.join(", ")}`);
+    }
+  }
+
   const shouldSubmit = await promptYesNo("Submit this review now? [y/N]: ");
   if (shouldSubmit === null) {
-    console.log("Interactive prompt unavailable. Run `toolspec submit` to submit explicitly.");
+    console.log(
+      "Interactive prompt unavailable. Run `toolspec submit` to submit explicitly (optional: set TOOLSPEC_EXTRA_REDACT_SLUGS=\"slug1,slug2\")."
+    );
     return;
   }
 
@@ -1230,7 +1290,7 @@ async function runReview() {
     return;
   }
 
-  await runSubmit([]);
+  await runSubmit([], { extraRedactions });
 }
 
 async function runUninstall() {
