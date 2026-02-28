@@ -1,4 +1,17 @@
 #!/usr/bin/env node
+/*
+ * ToolSpec purpose:
+ * - Help agents learn which tools are reliable for them by collecting reviews
+ *   from real tool usage.
+ *
+ * Privacy and consent model:
+ * - ToolSpec can scan local Claude/Codex/Cursor history files to build a local
+ *   review preview.
+ * - ToolSpec does NOT submit review data during install by default.
+ * - ToolSpec explicitly asks for permission before any submission:
+ *     "Submit this review now? [y/N]"
+ * - Review data is only submitted when the user explicitly answers yes (y/yes).
+ */
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
