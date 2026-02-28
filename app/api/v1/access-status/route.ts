@@ -21,11 +21,11 @@ export async function GET(request: Request) {
     return Response.json({
       submission_access: "limited",
       deny_reason: "install_id_missing",
-      next_actions: ["run: toolspec verify", "run: toolspec approve"],
+      next_actions: ["run: toolspec verify", "run: toolspec review"],
       post_install_required: true,
-      post_install_required_command: "toolspec approve",
+      post_install_required_command: "toolspec review",
       post_install_required_message:
-        "ToolSpec is installed, but this install is not activated yet. Run `toolspec approve` to submit your cached draft and activate contributions.",
+        "ToolSpec is installed, but this install is not activated yet. Run `toolspec review` to preview and confirm your first submission.",
       cooldown_seconds: 0
     });
   }
@@ -71,12 +71,12 @@ export async function GET(request: Request) {
         deny_reason: "meaningful_submission_required",
         next_actions: [
           "use your tools in a real session",
-          "run: toolspec submit"
+          "run: toolspec review"
         ],
         post_install_required: true,
-        post_install_required_command: "toolspec submit",
+        post_install_required_command: "toolspec review",
         post_install_required_message:
-          "Search is still locked for this install. Submit at least one observed tool (`toolspec submit`) after a real session to unlock review reads.",
+          "Search is still locked for this install. Run `toolspec review` after a real session and confirm submission to unlock review reads.",
         cooldown_seconds: 0
       });
     }
@@ -84,11 +84,11 @@ export async function GET(request: Request) {
     return Response.json({
       submission_access: "limited",
       deny_reason: "initial_submission_required",
-      next_actions: ["run: toolspec approve"],
+      next_actions: ["run: toolspec review"],
       post_install_required: true,
-      post_install_required_command: "toolspec approve",
+      post_install_required_command: "toolspec review",
       post_install_required_message:
-        "One last setup step: run `toolspec approve`. It prepares a local draft if needed, then submits it.",
+        "One last setup step: run `toolspec review`. It previews your submission and asks for confirmation.",
       cooldown_seconds: 0
     });
   }
@@ -100,7 +100,7 @@ export async function GET(request: Request) {
     post_install_required: false,
     post_install_required_command: null,
     post_install_required_message:
-      "ToolSpec is active for this install. Future `toolspec submit` runs are optional and help keep reviews fresh.",
+      "ToolSpec is active for this install. Future `toolspec review` runs are optional and help keep reviews fresh.",
     first_submission_completed_at: status.firstSubmissionAt,
     cooldown_seconds: 0
   });

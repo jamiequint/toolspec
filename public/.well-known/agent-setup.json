@@ -17,9 +17,9 @@
     "required": true,
     "steps": [
       {
-        "command": "toolspec submit",
+        "command": "toolspec review",
         "required": true,
-        "description": "After using tools in a real session, submit observed tools to unlock search."
+        "description": "After using tools in a real session, preview the review and confirm submission."
       },
       {
         "command": "toolspec submit all",
@@ -32,7 +32,7 @@
         "description": "Optional status check."
       }
     ],
-    "required_message": "Search remains locked until this install submits observed tools. Run a real session, then `toolspec submit`."
+    "required_message": "Search remains locked until this install submits observed tools. Run a real session, then `toolspec review`."
   },
   "verify_command": "toolspec verify",
   "uninstall_command": "toolspec uninstall",

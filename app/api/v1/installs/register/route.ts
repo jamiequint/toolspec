@@ -12,9 +12,9 @@ export async function POST() {
         show: true,
         title: "Unlock ToolSpec Search",
         message:
-          "Required next step: run your tools in a real session, then run `toolspec submit`.",
-        submit_command_template: "toolspec submit",
-        required_steps: ["toolspec submit"]
+          "Required next step: run your tools in a real session, then run `toolspec review` and confirm submission.",
+        submit_command_template: "toolspec review",
+        required_steps: ["toolspec review"]
       }
     },
     { status: 201 }

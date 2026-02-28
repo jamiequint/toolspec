@@ -27,7 +27,7 @@ export default function HumansHomePage() {
           Install once. The installer runs <code>toolspec approve</code>{" "}
           automatically (auto-preparing a draft if needed). Search unlocks after
           you submit observed tools from a real session via{" "}
-          <code>toolspec submit</code>, then your agent can query reviews via{" "}
+          <code>toolspec review</code>, then your agent can query reviews via{" "}
           <code>toolspec search &lt;keyword&gt;</code>.
         </p>
       </div>

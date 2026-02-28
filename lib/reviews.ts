@@ -109,7 +109,8 @@ export function getServiceIndex() {
         "mkdir -p \"$HOME/.toolspec\" && curl -fsSL https://toolspec.dev/agent/toolspec-cli.js -o \"$HOME/.toolspec/toolspec-cli.js\" && cat \"$HOME/.toolspec/toolspec-cli.js\" && TOOLSPEC_CLI_SCRIPT=\"$HOME/.toolspec/toolspec-cli.js\" TOOLSPEC_CONFIG_DIR=\"$HOME/.toolspec\" TOOLSPEC_INSTALL_DIR=\"$HOME/.local/bin\" TOOLSPEC_INSTALL_AUTO_APPROVE=\"1\" node \"$HOME/.toolspec/toolspec-cli.js\" install",
       verify_command: "toolspec verify",
       approve_command: "toolspec approve",
-      search_unlock_command: "toolspec submit",
+      review_command: "toolspec review",
+      search_unlock_command: "toolspec review",
       search_example: "toolspec search <keyword>",
       submit_example: "toolspec submit",
       submit_all_prompted_example: "toolspec submit all",
@@ -186,14 +187,14 @@ export function buildContributionPrompt(
 
   const show = cooldownElapsed && (stale || readCount >= showAfterNthRead);
   const message = stale
-    ? `This review is stale. Run \`toolspec submit\` after your session to refresh shared priors.`
-    : `This review was built from ${contributorCount} installs. Run \`toolspec submit\` after your session to contribute updates.`;
+    ? `This review is stale. Run \`toolspec review\` after your session to refresh shared priors.`
+    : `This review was built from ${contributorCount} installs. Run \`toolspec review\` after your session to contribute updates.`;
 
   return {
     show,
     show_after_nth_read: showAfterNthRead,
     cooldown_hours: cooldownHours,
     message,
-    submit_command_template: "toolspec submit"
+    submit_command_template: "toolspec review"
   };
 }

@@ -68,7 +68,7 @@ const PUBLIC_TOOL_WHITELIST = new Set([
 
 function usage() {
   console.log(
-    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec prepare\n  toolspec approve\n  toolspec search <keyword>\n  toolspec submit\n  toolspec submit all\n  toolspec submit all --yolo\n  toolspec uninstall"
+    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec review\n  toolspec prepare\n  toolspec approve\n  toolspec search <keyword>\n  toolspec submit\n  toolspec submit all\n  toolspec submit all --yolo\n  toolspec uninstall"
   );
 }
 
@@ -540,6 +540,20 @@ async function promptUnknownToolsOneByOne(unknownTools) {
   return { included, redacted, prompted: true };
 }
 
+async function promptYesNo(question) {
+  if (!stdin.isTTY || !stdout.isTTY) {
+    return null;
+  }
+
+  const rl = readline.createInterface({ input: stdin, output: stdout });
+  try {
+    const answer = (await rl.question(question)).trim().toLowerCase();
+    return answer === "y" || answer === "yes";
+  } finally {
+    rl.close();
+  }
+}
+
 async function runStatus() {
   let statusPayload = null;
   const installRecord = await readInstallRecord();
@@ -578,7 +592,7 @@ async function runStatus() {
     if (typeof statusPayload?.post_install_required_command === "string") {
       console.log(`REQUIRED NEXT STEP: ${statusPayload.post_install_required_command}`);
     } else {
-      console.log("REQUIRED NEXT STEP: toolspec submit");
+      console.log("REQUIRED NEXT STEP: toolspec review");
     }
   } else if (draft?.summary) {
     console.log("Approval status: pending");
@@ -598,16 +612,16 @@ async function runStatus() {
     console.log(
       `Observed tools: ${observed.length} (${publicTools.length} public, ${unknownTools.length} non-whitelist)`
     );
-    console.log("Submit modes:");
+    console.log("Recommended:");
+    console.log("  toolspec review");
+    console.log("Direct submit modes:");
     console.log("  toolspec submit");
     console.log("  toolspec submit all");
     console.log("  toolspec submit all --yolo");
   } else {
     console.log("Observed tools: 0");
-    console.log("Run a session with your tools, then contribute a real review:");
-    console.log("  toolspec submit");
-    console.log("  toolspec submit all");
-    console.log("  toolspec submit all --yolo");
+    console.log("Run a session with your tools, then run:");
+    console.log("  toolspec review");
   }
 
   console.log("Run 'toolspec help' for command reference.");
@@ -655,10 +669,8 @@ async function runApprove() {
   if (observedCount === 0) {
     console.log("Approval complete, but search remains locked.");
     console.log("Activation review had 0 observed tools.");
-    console.log("After running tools in a session, submit a full review:");
-    console.log("  toolspec submit");
-    console.log("  toolspec submit all");
-    console.log("  toolspec submit all --yolo");
+    console.log("After running tools in a session, run:");
+    console.log("  toolspec review");
     return;
   }
 
@@ -710,7 +722,7 @@ async function runSearch(args) {
     throw new Error(
       typeof accessStatus?.post_install_required_message === "string"
         ? accessStatus.post_install_required_message
-        : "Search is locked. Run `toolspec submit` after using tools in a real session."
+        : "Search is locked. Run `toolspec review` after using tools in a real session."
     );
   }
 
@@ -802,6 +814,52 @@ async function runSubmit(rawArgs) {
   }
 }
 
+async function runReview() {
+  const observedTools = getObservedToolSlugs();
+  const { publicTools, unknownTools } = partitionObservedTools(observedTools);
+
+  console.log("ToolSpec review preview:");
+  console.log(
+    JSON.stringify(
+      {
+        observed_tools: observedTools.length,
+        whitelisted_tools_to_submit: publicTools.length,
+        non_whitelist_tools_redacted: unknownTools.length
+      },
+      null,
+      2
+    )
+  );
+
+  if (publicTools.length > 0) {
+    console.log(`Submit list: ${publicTools.join(", ")}`);
+  } else {
+    console.log("Submit list: (none)");
+  }
+
+  if (unknownTools.length > 0) {
+    console.log(`Redacted by default: ${unknownTools.join(", ")}`);
+  }
+
+  if (observedTools.length === 0) {
+    console.log("No observed tools detected yet.");
+    console.log("Use tools in a real session first, then re-run `toolspec review`.");
+  }
+
+  const shouldSubmit = await promptYesNo("Submit this review now? [y/N]: ");
+  if (shouldSubmit === null) {
+    console.log("Interactive prompt unavailable. Run `toolspec submit` to submit explicitly.");
+    return;
+  }
+
+  if (!shouldSubmit) {
+    console.log("Review not submitted.");
+    return;
+  }
+
+  await runSubmit([]);
+}
+
 async function runUninstall() {
   const installRecord = await readInstallRecord();
   const installId = installRecord?.install_id;
@@ -836,6 +894,9 @@ async function main() {
       return;
     case "verify":
       await runVerify();
+      return;
+    case "review":
+      await runReview();
       return;
     case "prepare":
       await runPrepare();

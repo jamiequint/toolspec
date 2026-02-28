@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       {
         error: "install_required",
         message:
-          "ToolSpec review reads require an activated install. Run `toolspec install`, then submit observed tools with `toolspec submit`."
+          "ToolSpec review reads require an activated install. Run `toolspec install`, then submit observed tools with `toolspec review`."
       },
       { status: 403 }
     );
@@ -57,8 +57,8 @@ export async function GET(request: Request) {
 
   if (!status.firstSubmissionCompleted) {
     const message = status.hasAnySubmission
-      ? "Search is locked until this install submits observed tools. Run a real tool session, then `toolspec submit`."
-      : "Install not activated for reads yet. Run `toolspec approve`, then use tools and run `toolspec submit`.";
+      ? "Search is locked until this install submits observed tools. Run a real tool session, then `toolspec review`."
+      : "Install not activated for reads yet. Run `toolspec review` and confirm submission.";
 
     return Response.json(
       {

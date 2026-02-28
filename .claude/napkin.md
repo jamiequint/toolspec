@@ -9,6 +9,7 @@
 - Keep setup easy and low-friction for Codex, Claude Code, and Cursor.
 - Agent homepage should stay JSON-first; human content should be HTML under `/humans`.
 - Installation flow should work directly from `https://toolspec.dev/` instructions.
+- First post-install user command should be `toolspec review` with explicit yes/no submit confirmation.
 
 ## Patterns That Work
 - Script-first bootstrap from `https://toolspec.dev/agent/install.sh` is reliable across agents.
@@ -34,3 +35,4 @@
 | 2026-02-27 | self | Added auto-approve install behavior but left docs/log text saying install was local-only, which made trust review inconsistent | Keep install messaging and setup manifests synchronized with actual install side effects, and verify shell + PowerShell parity before deploy |
 | 2026-02-27 | self | Ran `public/agent/install.sh` smoke test against production and got old behavior because it fetched the deployed CLI, not local edits | For pre-deploy installer testing, execute local CLI directly with temp config/install envs; use live install script only after deploy |
 | 2026-02-28 | self | Unlock gate relied on “any submission” and auto-approve generated zero-observed submissions, unintentionally enabling reads | Gate read access on meaningful submissions (observed tool count > 0), enforce in both API and CLI, and update post-install messaging accordingly |
+| 2026-02-28 | self | User flow asked for review/confirm UX, but messages still pointed at direct `submit` commands | Keep product-level “first command” semantics consistent across CLI usage text, API status messages, and setup manifest/docs |

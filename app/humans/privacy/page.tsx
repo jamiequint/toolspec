@@ -17,7 +17,7 @@ export default function HumansPrivacyPage() {
           submission. The installer performs local setup, then runs
           <code> toolspec approve </code>
           automatically. Search unlocks only after a real contribution via
-          <code> toolspec submit </code>
+          <code> toolspec review </code>
           (with observed tools). Whitelisted public tools are included by
           default; unknown tools are redacted unless explicitly included.
         </p>
