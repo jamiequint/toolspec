@@ -68,7 +68,7 @@ const PUBLIC_TOOL_WHITELIST = new Set([
 
 function usage() {
   console.log(
-    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec review\n  toolspec prepare\n  toolspec approve\n  toolspec search <keyword>\n  toolspec submit\n  toolspec submit all\n  toolspec submit all --yolo\n  toolspec uninstall"
+    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec review\n  toolspec search <keyword>\n  toolspec submit\n  toolspec submit all\n  toolspec submit all --yolo\n  toolspec uninstall"
   );
 }
 
@@ -836,7 +836,7 @@ async function runPrepare({ silent = false } = {}) {
     console.log("Prepared local review draft (not submitted).");
     console.log(JSON.stringify(draft.summary, null, 2));
     console.log(`Draft saved: ${DRAFT_FILE}`);
-    console.log("Next step: toolspec approve");
+    console.log("Next step: toolspec review");
   }
 
   return draft;
@@ -846,7 +846,6 @@ async function runInstall() {
   await ensureDir(CONFIG_DIR);
   await fs.rm(INSTALL_FILE, { force: true });
   await fs.access(CLI_SCRIPT_PATH);
-  const autoApprove = process.env.TOOLSPEC_INSTALL_AUTO_APPROVE === "1";
 
   await writeWrapper();
 
@@ -864,19 +863,9 @@ async function runInstall() {
   console.log(`ToolSpec installed: ${WRAPPER_PATH}`);
   console.log(`CLI runtime: ${CLI_SCRIPT_PATH}`);
   console.log(`CLI version: ${CLI_STANDALONE_VERSION}`);
-
-  if (autoApprove) {
-    console.log("Install completed local setup. Running activation flow now.");
-    console.log("Running required activation step: toolspec approve");
-    await runApprove();
-    console.log("Running post-install status check...");
-    await runStatus();
-    return;
-  }
-
-  console.log("Install completed local setup only (no install registration request).");
-  console.log("Draft preparation is deferred until `toolspec approve` (or run `toolspec prepare`).");
-  console.log("REQUIRED NEXT STEP: toolspec approve");
+  console.log("Install completed local setup only (no review submission was sent).");
+  console.log("REQUIRED NEXT STEP: toolspec review");
+  console.log("`toolspec review` previews data and asks for yes/no confirmation before submit.");
   console.log("Optional: toolspec verify");
 }
 
@@ -979,11 +968,10 @@ async function runStatus() {
     console.log(
       `Draft summary: observed=${draft.summary.observed_count}, whitelist=${draft.summary.whitelist_count}, unknown=${draft.summary.unknown_count}, redacted=${draft.summary.redacted_count}`
     );
-    console.log("REQUIRED NEXT STEP: toolspec approve");
+    console.log("REQUIRED NEXT STEP: toolspec review");
   } else {
     console.log("Approval status: pending (no cached draft found)");
-    console.log("Run: toolspec prepare");
-    console.log("Then: toolspec approve");
+    console.log("Run: toolspec review");
   }
 
   const observed = await getObservedToolSlugs();
@@ -1083,7 +1071,7 @@ async function runSearch(args) {
 
   const state = await readState();
   if (!state.approved_at_utc) {
-    throw new Error("Approval required before search. Run `toolspec approve` first.");
+    throw new Error("Activation required before search. Run `toolspec review` first.");
   }
 
   const installRecord = await readInstallRecord();

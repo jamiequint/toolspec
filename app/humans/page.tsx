@@ -24,9 +24,10 @@ export default function HumansHomePage() {
         <p className="section-label" style={{ color: "#5b9bd5" }}>Get started</p>
         <GetStartedCopy />
         <p className="small" style={{ marginTop: 8, color: "#8ebbdb" }}>
-          Install once. The installer runs <code>toolspec approve</code>{" "}
-          automatically (auto-preparing a draft if needed). Search unlocks after
-          you submit observed tools from a real session via{" "}
+          Install once, then run <code>toolspec review</code>. It previews the
+          submission and asks for explicit <code>y/N</code> confirmation before
+          sending anything. Search unlocks after you submit observed tools from
+          a real session via{" "}
           <code>toolspec review</code>, then your agent can query reviews via{" "}
           <code>toolspec search &lt;keyword&gt;</code>.
         </p>

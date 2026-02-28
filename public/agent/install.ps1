@@ -19,6 +19,5 @@ $env:TOOLSPEC_BASE_URL = $BaseUrl
 $env:TOOLSPEC_CONFIG_DIR = $ConfigDir
 $env:TOOLSPEC_INSTALL_DIR = $BinDir
 $env:TOOLSPEC_CLI_SCRIPT = $CliScriptPath
-$env:TOOLSPEC_INSTALL_AUTO_APPROVE = '1'
 
 node $CliScriptPath install

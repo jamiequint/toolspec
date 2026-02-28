@@ -6,9 +6,8 @@ CLI for ToolSpec install, verification, review submission, and uninstall.
 
 ```bash
 npx -y toolspec-cli@0.1.1 install
-toolspec prepare # optional, approve auto-prepares if missing
 toolspec verify
-toolspec approve
+toolspec review # previews and asks y/N before submit
 toolspec search linear
 toolspec submit # optional direct submit
 toolspec submit all # optional direct submit with unknown prompts
