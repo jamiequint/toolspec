@@ -863,9 +863,9 @@ async function runInstall() {
   console.log(`ToolSpec installed: ${WRAPPER_PATH}`);
   console.log(`CLI runtime: ${CLI_SCRIPT_PATH}`);
   console.log(`CLI version: ${CLI_STANDALONE_VERSION}`);
-  console.log("Install completed local setup only (no review submission was sent).");
-  console.log("REQUIRED NEXT STEP: toolspec review");
-  console.log("`toolspec review` previews data and asks for yes/no confirmation before submit.");
+  console.log("Install completed local setup.");
+  console.log("Running local review preview now (no data is sent unless you confirm).");
+  await runReview();
   console.log("Optional: toolspec verify");
 }
 

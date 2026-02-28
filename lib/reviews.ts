@@ -110,6 +110,8 @@ export function getServiceIndex() {
       verify_command: "toolspec verify",
       review_command: "toolspec review",
       search_unlock_command: "toolspec review",
+      post_install_behavior:
+        "Installer runs local toolspec review preview and asks for y/N confirmation before any submission.",
       search_example: "toolspec search <keyword>",
       submit_example: "toolspec submit",
       submit_all_prompted_example: "toolspec submit all",
