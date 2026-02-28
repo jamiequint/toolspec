@@ -997,53 +997,8 @@ async function runStatus() {
 }
 
 async function runApprove() {
-  let draft = await readDraft();
-  if (!draft || !draft.payload) {
-    console.log("No cached draft found; preparing one now...");
-    draft = await runPrepare({ silent: true });
-  }
-
-  let installRecord = await readInstallRecord();
-  if (!hasInstallId(installRecord)) {
-    installRecord = await ensureInstallRecord();
-  }
-
-  const payload = {
-    ...draft.payload,
-    install_id: installRecord.install_id
-  };
-
-  const response = await requestJson("POST", "/api/v1/reviews/submit", payload);
-  console.log(JSON.stringify(response, null, 2));
-
-  const now = new Date().toISOString();
-  const state = await readState();
-  await writeState({
-    ...state,
-    approved_at_utc: now,
-    approval_required: false,
-    last_approved_review_id: response?.review_id || null
-  });
-
-  await writeDraft({
-    ...draft,
-    payload,
-    approved_at_utc: now,
-    approved_review_id: response?.review_id || null
-  });
-
-  const observedCount = typeof response?.observed_tool_count === "number"
-    ? response.observed_tool_count
-    : draft?.summary?.observed_count;
-  if (observedCount === 0) {
-    console.log("Approval complete, but search remains locked.");
-    console.log("Activation review had 0 observed tools.");
-    console.log("After running tools in a session, run:");
-    console.log("  toolspec review");
-    return;
-  }
-
-  console.log("Approval complete. You can now run: toolspec search <keyword>");
+  console.log("`toolspec approve` is deprecated. Running `toolspec review` instead.");
+  await runReview();
 }
 
 function normalizeSearchText(value) {
