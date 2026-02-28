@@ -90,8 +90,388 @@ function parseCsvList(raw) {
   return values;
 }
 
-function getObservedToolSlugs() {
-  return parseCsvList(process.env.TOOLSPEC_OBSERVED_TOOLS || "");
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const HISTORY_MAX_BYTES_PER_FILE = parsePositiveInteger(
+  process.env.TOOLSPEC_HISTORY_MAX_BYTES_PER_FILE,
+  1024 * 1024
+);
+const HISTORY_MAX_TOTAL_BYTES = parsePositiveInteger(
+  process.env.TOOLSPEC_HISTORY_MAX_TOTAL_BYTES,
+  16 * 1024 * 1024
+);
+const HISTORY_MAX_FILES = parsePositiveInteger(process.env.TOOLSPEC_HISTORY_MAX_FILES, 250);
+const HISTORY_MAX_DIR_ENTRIES = parsePositiveInteger(
+  process.env.TOOLSPEC_HISTORY_MAX_DIR_ENTRIES,
+  5000
+);
+const MCP_TOOL_REGEX = /\bmcp__[a-z0-9_]+__[a-z0-9_]+\b/gi;
+const FUNCTION_TOOL_REGEX = /\bfunctions\.[a-z0-9_]+\b/gi;
+
+let observedToolSlugsPromise = null;
+
+function expandHomePath(targetPath) {
+  if (typeof targetPath !== "string" || targetPath.length === 0) {
+    return targetPath;
+  }
+
+  if (targetPath === "~") {
+    return os.homedir();
+  }
+
+  if (targetPath.startsWith("~/")) {
+    return path.join(os.homedir(), targetPath.slice(2));
+  }
+
+  return targetPath;
+}
+
+function getCursorRoots() {
+  const roots = [];
+
+  if (process.platform === "darwin") {
+    roots.push(path.join(os.homedir(), "Library", "Application Support", "Cursor"));
+  }
+
+  if (process.platform === "linux") {
+    roots.push(path.join(os.homedir(), ".config", "Cursor"));
+  }
+
+  if (process.platform === "win32") {
+    if (typeof process.env.APPDATA === "string" && process.env.APPDATA.length > 0) {
+      roots.push(path.join(process.env.APPDATA, "Cursor"));
+    }
+    roots.push(path.join(os.homedir(), "AppData", "Roaming", "Cursor"));
+  }
+
+  return uniq(roots.map((value) => path.resolve(value)));
+}
+
+function getHistoryScanTargets() {
+  const home = os.homedir();
+  const defaults = [
+    path.join(home, ".claude", "history.jsonl"),
+    path.join(home, ".claude", "projects"),
+    path.join(home, ".codex", "history.jsonl"),
+    path.join(home, ".codex", "sessions")
+  ];
+
+  for (const cursorRoot of getCursorRoots()) {
+    defaults.push(path.join(cursorRoot, "logs"));
+  }
+
+  const overrides = parseCsvList(process.env.TOOLSPEC_HISTORY_PATHS || "").map(expandHomePath);
+  return uniq([...defaults, ...overrides].map((value) => path.resolve(value)));
+}
+
+function shouldInspectHistoryFile(filePath) {
+  const normalized = String(filePath || "").toLowerCase();
+  if (normalized.endsWith(".jsonl") || normalized.endsWith(".log")) {
+    return true;
+  }
+
+  const base = path.basename(normalized);
+  return base === "history" || base === "history.json";
+}
+
+async function safeStat(filePath) {
+  try {
+    return await fs.stat(filePath);
+  } catch {
+    return null;
+  }
+}
+
+async function listHistoryFilesRecursively(rootDir, maxEntries = HISTORY_MAX_DIR_ENTRIES) {
+  const queue = [rootDir];
+  const files = [];
+  let visitedEntries = 0;
+
+  for (let index = 0; index < queue.length && visitedEntries < maxEntries; index += 1) {
+    const currentDir = queue[index];
+    let entries;
+    try {
+      entries = await fs.readdir(currentDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    entries.sort((left, right) => right.name.localeCompare(left.name));
+    for (const entry of entries) {
+      if (visitedEntries >= maxEntries) {
+        break;
+      }
+      visitedEntries += 1;
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        queue.push(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      if (!shouldInspectHistoryFile(fullPath)) {
+        continue;
+      }
+
+      const stats = await safeStat(fullPath);
+      if (!stats || !stats.isFile()) {
+        continue;
+      }
+
+      files.push({
+        path: fullPath,
+        size: stats.size,
+        mtimeMs: stats.mtimeMs || 0
+      });
+    }
+  }
+
+  return files;
+}
+
+async function readFileTailUtf8(filePath, maxBytes) {
+  const handle = await fs.open(filePath, "r");
+  try {
+    const stats = await handle.stat();
+    const size = Number.isFinite(stats.size) ? stats.size : 0;
+    const length = Math.min(size, maxBytes);
+    if (length <= 0) {
+      return "";
+    }
+
+    const start = size > length ? size - length : 0;
+    const buffer = Buffer.alloc(length);
+    await handle.read(buffer, 0, length, start);
+    return buffer.toString("utf8");
+  } finally {
+    await handle.close();
+  }
+}
+
+function canonicalizeToolName(rawName) {
+  const normalized = String(rawName || "").trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (
+    normalized === "shell_command"
+    || normalized === "exec_command"
+    || normalized === "functions.exec_command"
+    || normalized === "write_stdin"
+    || normalized === "functions.write_stdin"
+  ) {
+    return "bash";
+  }
+
+  return normalized;
+}
+
+function addObservedTool(toolSet, rawName) {
+  const normalized = canonicalizeToolName(rawName);
+  if (normalized) {
+    toolSet.add(normalized);
+  }
+}
+
+function extractToolSlugsFromText(text, toolSet) {
+  if (typeof text !== "string" || text.length === 0) {
+    return;
+  }
+
+  for (const match of text.match(MCP_TOOL_REGEX) || []) {
+    addObservedTool(toolSet, match);
+  }
+
+  for (const match of text.match(FUNCTION_TOOL_REGEX) || []) {
+    addObservedTool(toolSet, match);
+  }
+}
+
+function extractToolSlugsFromJsonRecord(record, toolSet) {
+  if (!record || typeof record !== "object") {
+    return;
+  }
+
+  if (record.type === "tool_use" && typeof record.name === "string") {
+    addObservedTool(toolSet, record.name);
+  }
+
+  if (record.type === "function_call" && typeof record.name === "string") {
+    addObservedTool(toolSet, record.name);
+  }
+
+  if (typeof record.content === "string") {
+    extractToolSlugsFromText(record.content, toolSet);
+  }
+
+  if (typeof record.text === "string") {
+    extractToolSlugsFromText(record.text, toolSet);
+  }
+
+  if (record.message && typeof record.message === "object") {
+    const messageContent = record.message.content;
+    if (Array.isArray(messageContent)) {
+      for (const item of messageContent) {
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+
+        if (item.type === "tool_use" && typeof item.name === "string") {
+          addObservedTool(toolSet, item.name);
+        }
+
+        if (typeof item.text === "string") {
+          extractToolSlugsFromText(item.text, toolSet);
+        }
+      }
+    } else if (typeof messageContent === "string") {
+      extractToolSlugsFromText(messageContent, toolSet);
+    }
+  }
+
+  if (record.payload && typeof record.payload === "object") {
+    const payload = record.payload;
+
+    if (payload.type === "function_call" && typeof payload.name === "string") {
+      addObservedTool(toolSet, payload.name);
+    }
+
+    if (payload.type === "tool_use" && typeof payload.name === "string") {
+      addObservedTool(toolSet, payload.name);
+    }
+
+    if (typeof payload.arguments === "string") {
+      extractToolSlugsFromText(payload.arguments, toolSet);
+    }
+
+    if (typeof payload.output === "string") {
+      extractToolSlugsFromText(payload.output, toolSet);
+    }
+
+    if (Array.isArray(payload.content)) {
+      for (const item of payload.content) {
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+
+        if (item.type === "tool_use" && typeof item.name === "string") {
+          addObservedTool(toolSet, item.name);
+        }
+
+        if (typeof item.text === "string") {
+          extractToolSlugsFromText(item.text, toolSet);
+        }
+      }
+    }
+  }
+}
+
+function parseHistoryContent(content, toolSet) {
+  if (typeof content !== "string" || content.length === 0) {
+    return;
+  }
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+
+    if (line.startsWith("{") || line.startsWith("[")) {
+      try {
+        extractToolSlugsFromJsonRecord(JSON.parse(line), toolSet);
+        continue;
+      } catch {
+        // Continue with regex fallback below.
+      }
+    }
+
+    extractToolSlugsFromText(line, toolSet);
+  }
+}
+
+async function collectObservedToolSlugsFromHistory() {
+  const candidates = [];
+  for (const targetPath of getHistoryScanTargets()) {
+    const stats = await safeStat(targetPath);
+    if (!stats) {
+      continue;
+    }
+
+    if (stats.isFile()) {
+      if (shouldInspectHistoryFile(targetPath)) {
+        candidates.push({
+          path: targetPath,
+          size: stats.size,
+          mtimeMs: stats.mtimeMs || 0
+        });
+      }
+      continue;
+    }
+
+    if (!stats.isDirectory()) {
+      continue;
+    }
+
+    candidates.push(...(await listHistoryFilesRecursively(targetPath)));
+  }
+
+  const dedupedByPath = new Map();
+  for (const candidate of candidates) {
+    const previous = dedupedByPath.get(candidate.path);
+    if (!previous || candidate.mtimeMs > previous.mtimeMs) {
+      dedupedByPath.set(candidate.path, candidate);
+    }
+  }
+
+  const files = Array.from(dedupedByPath.values())
+    .sort((left, right) => right.mtimeMs - left.mtimeMs)
+    .slice(0, HISTORY_MAX_FILES);
+
+  const observedTools = new Set();
+  let remainingBytes = HISTORY_MAX_TOTAL_BYTES;
+
+  for (const file of files) {
+    if (remainingBytes <= 0) {
+      break;
+    }
+
+    const maxBytes = Math.min(HISTORY_MAX_BYTES_PER_FILE, remainingBytes);
+    if (maxBytes <= 0) {
+      break;
+    }
+
+    try {
+      const content = await readFileTailUtf8(file.path, maxBytes);
+      remainingBytes -= Buffer.byteLength(content, "utf8");
+      parseHistoryContent(content, observedTools);
+    } catch {
+      // Ignore unreadable files and continue best-effort.
+    }
+  }
+
+  return Array.from(observedTools);
+}
+
+async function getObservedToolSlugs() {
+  if (!observedToolSlugsPromise) {
+    observedToolSlugsPromise = (async () => {
+      const observedFromEnv = parseCsvList(process.env.TOOLSPEC_OBSERVED_TOOLS || "")
+        .map(canonicalizeToolName)
+        .filter(Boolean);
+      const observedFromHistory = await collectObservedToolSlugsFromHistory();
+      return uniq([...observedFromEnv, ...observedFromHistory]).sort();
+    })();
+  }
+
+  return observedToolSlugsPromise;
 }
 
 function getSlugCandidates(toolSlug) {
@@ -394,7 +774,7 @@ async function prepareReviewDraft({ mode = "whitelist", yolo = false } = {}) {
 
   const now = new Date().toISOString();
   const token = crypto.randomUUID().replace(/-/g, "");
-  const observedTools = getObservedToolSlugs();
+  const observedTools = await getObservedToolSlugs();
   const { publicTools, unknownTools } = partitionObservedTools(observedTools);
 
   let submittedTools = [...publicTools];
@@ -600,7 +980,7 @@ async function runStatus() {
     console.log("Then: toolspec approve");
   }
 
-  const observed = getObservedToolSlugs();
+  const observed = await getObservedToolSlugs();
   if (observed.length > 0) {
     const { publicTools, unknownTools } = partitionObservedTools(observed);
     console.log(
@@ -614,7 +994,8 @@ async function runStatus() {
     console.log("  toolspec submit all --yolo");
   } else {
     console.log("Observed tools: 0");
-    console.log("Run a session with your tools, then run:");
+    console.log("No supported tool history found yet.");
+    console.log("After using tools in Claude/Codex/Cursor, run:");
     console.log("  toolspec review");
   }
 
@@ -751,7 +1132,7 @@ async function runSubmit(rawArgs) {
 
   const now = new Date().toISOString();
   const token = crypto.randomUUID().replace(/-/g, "");
-  const observedTools = getObservedToolSlugs();
+  const observedTools = await getObservedToolSlugs();
   const { publicTools, unknownTools } = partitionObservedTools(observedTools);
 
   let includedTools = [...publicTools];
@@ -809,10 +1190,11 @@ async function runSubmit(rawArgs) {
 }
 
 async function runReview() {
-  const observedTools = getObservedToolSlugs();
+  const observedTools = await getObservedToolSlugs();
   const { publicTools, unknownTools } = partitionObservedTools(observedTools);
 
   console.log("ToolSpec review preview:");
+  console.log("Source: local Claude/Codex/Cursor history + TOOLSPEC_OBSERVED_TOOLS");
   console.log(
     JSON.stringify(
       {
@@ -836,8 +1218,8 @@ async function runReview() {
   }
 
   if (observedTools.length === 0) {
-    console.log("No observed tools detected yet.");
-    console.log("Use tools in a real session first, then re-run `toolspec review`.");
+    console.log("No observed tools detected in supported history files.");
+    console.log("If your history lives elsewhere, set TOOLSPEC_HISTORY_PATHS and re-run `toolspec review`.");
   }
 
   const shouldSubmit = await promptYesNo("Submit this review now? [y/N]: ");

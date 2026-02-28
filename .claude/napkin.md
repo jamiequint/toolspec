@@ -14,6 +14,7 @@
 ## Patterns That Work
 - Script-first bootstrap from `https://toolspec.dev/agent/install.sh` is reliable across agents.
 - Immediate post-install review prompt in register response improves contribution likelihood.
+- Runtime observation from local agent history files (`~/.claude`, `~/.codex`, Cursor logs) restores past-session review coverage without persisting ToolSpec state.
 
 ## Patterns That Don't Work
 - NPM-only bootstrap for agent setup (too brittle when package is unpublished or npm auth is missing).
@@ -36,3 +37,4 @@
 | 2026-02-27 | self | Ran `public/agent/install.sh` smoke test against production and got old behavior because it fetched the deployed CLI, not local edits | For pre-deploy installer testing, execute local CLI directly with temp config/install envs; use live install script only after deploy |
 | 2026-02-28 | self | Unlock gate relied on “any submission” and auto-approve generated zero-observed submissions, unintentionally enabling reads | Gate read access on meaningful submissions (observed tool count > 0), enforce in both API and CLI, and update post-install messaging accordingly |
 | 2026-02-28 | self | User flow asked for review/confirm UX, but messages still pointed at direct `submit` commands | Keep product-level “first command” semantics consistent across CLI usage text, API status messages, and setup manifest/docs |
+| 2026-02-28 | user | Implemented behavior around local session assumptions while requirement is end-user installer behavior on arbitrary machines | Build runtime discovery against each installer user's home/platform paths (Claude/Codex/Cursor), and avoid machine-specific assumptions |
