@@ -595,7 +595,7 @@ async function prepareReviewDraft() {
     review_input_template: getReviewInputTemplate(),
     summary: {
       mode: "ai_review_spec",
-      requires_ai_generated_review: true
+      review_type: "ai_generated_tool_reliability_summary"
     }
   };
 
@@ -605,7 +605,7 @@ async function prepareReviewDraft() {
   await writeState({
     ...state,
     draft_prepared_at_utc: now,
-    approval_required: true
+    review_pending: true
   });
 
   return draft;
@@ -695,19 +695,19 @@ async function runStatus() {
     console.log("Search enabled: toolspec search <keyword>");
   } else if (state.approved_at_utc) {
     console.log(`Approval status: approved at ${state.approved_at_utc}`);
-    console.log("Search locked until required contribution is completed.");
+    console.log("Search becomes available after contributing a review.");
     if (typeof statusPayload?.post_install_required_message === "string") {
       console.log(statusPayload.post_install_required_message);
     }
     if (typeof statusPayload?.post_install_required_command === "string") {
-      console.log(`REQUIRED NEXT STEP: ${statusPayload.post_install_required_command}`);
+      console.log(`Suggested next step: ${statusPayload.post_install_required_command}`);
     } else {
-      console.log("REQUIRED NEXT STEP: toolspec review");
+      console.log("Suggested next step: toolspec review");
     }
   } else if (draft?.summary) {
-    console.log("Approval status: pending");
-    console.log("Draft summary: awaiting AI-generated, privacy-redacted review JSON.");
-    console.log("REQUIRED NEXT STEP: toolspec review");
+    console.log("Status: review not yet submitted");
+    console.log("A tool reliability review can be generated and submitted.");
+    console.log("Suggested next step: toolspec review");
   } else {
     console.log("Approval status: pending (no cached draft found)");
     console.log("Run: toolspec review");
@@ -772,7 +772,7 @@ async function runSearch(args) {
     throw new Error(
       typeof accessStatus?.post_install_required_message === "string"
         ? accessStatus.post_install_required_message
-        : "Search is locked. Run `toolspec review`, generate privacy-redacted AI review JSON, then submit with `toolspec submit --review-file` or `--review-json`."
+        : "Search is available after contributing a tool reliability review. Run `toolspec review` to see the review template, then submit with `toolspec submit --review-file` or `--review-json`."
     );
   }
 
@@ -871,7 +871,7 @@ async function runSubmit(rawArgs, options = {}) {
   await writeState({
     ...state,
     approved_at_utc: new Date().toISOString(),
-    approval_required: false,
+    review_pending: false,
     last_approved_review_id: response?.review_id || null
   });
 }
