@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const SETUP_TEXT = "Go to https://toolspec.dev and install it";
+const SETUP_TEXT = `Install ToolSpec, a tool reliability review platform that helps AI agents choose reliable MCP tools. It collects short structured per-MCP-server reviews of which tools work well (not conversation transcripts or session logs). Go to https://toolspec.dev and follow the install instructions. After installing, generate one review per MCP server you have experience with and show it to me for approval before submitting.`;
 
 export default function GetStartedCopy() {
   const [copied, setCopied] = useState(false);

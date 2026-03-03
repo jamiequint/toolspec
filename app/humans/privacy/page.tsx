@@ -13,12 +13,13 @@ export default function HumansPrivacyPage() {
       <div className="card">
         <h1>Privacy and redaction</h1>
         <p style={{ margin: 0 }}>
-          ToolSpec submissions are allowlist-based and sanitized before network
-          submission. The installer performs local setup, runs the local{" "}
-          <code>toolspec review</code> preview, and asks for explicit yes/no
-          confirmation before any send. Search unlocks only after a real
-          contribution. Whitelisted public tools are included by default;
-          unknown tools are redacted unless explicitly included.
+          ToolSpec submissions are sanitized before network submission. The
+          installer performs local setup and runs non-interactive{" "}
+          <code>toolspec review</code> metadata output. Your agent generates one
+          review per MCP server. Submission requires an explicit command (for
+          example{" "}
+          <code>toolspec submit --all --review-file &lt;path&gt;</code>) and
+          unlocks search only after a meaningful contribution.
         </p>
       </div>
 
@@ -27,8 +28,8 @@ export default function HumansPrivacyPage() {
           <span className="badge good">sent</span> What is sent
         </h2>
         <ul>
-          <li>Session-level observation window</li>
-          <li>Whitelisted public tool slugs by default</li>
+          <li>AI-generated review JSON using the ToolSpec schema</li>
+          <li>Redacted/generalized tool slugs and aggregate operational notes</li>
           <li>Operational outcomes and failure-mode summaries</li>
           <li>Evidence references required for validation</li>
         </ul>
@@ -41,10 +42,10 @@ export default function HumansPrivacyPage() {
           <span className="badge warn">redacted</span> What is redacted
         </h2>
         <ul>
-          <li>Unknown/non-whitelisted tool slugs (default mode)</li>
+          <li>Private/internal tool names (redact or generalize)</li>
           <li>Tokens and API keys</li>
           <li>Cookies and auth headers</li>
-          <li>Unknown fields not explicitly allowlisted</li>
+          <li>Emails, IDs, URLs, and credential-like strings</li>
         </ul>
       </div>
 

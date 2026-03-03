@@ -24,11 +24,13 @@ export default function HumansHomePage() {
         <p className="section-label" style={{ color: "#5b9bd5" }}>Get started</p>
         <GetStartedCopy />
         <p className="small" style={{ marginTop: 8, color: "#8ebbdb" }}>
-          Install once. The installer immediately runs{" "}
-          <code>toolspec review</code> preview and asks for explicit{" "}
-          <code>y/N</code> confirmation before sending anything. Search unlocks
-          after you submit observed tools from a real session via{" "}
-          <code>toolspec review</code>, then your agent can query reviews via{" "}
+          Install once. The installer immediately runs non-interactive{" "}
+          <code>toolspec review</code> metadata output. Your agent generates one
+          review per MCP server it has experience with. Submission only happens
+          via explicit commands such as{" "}
+          <code>toolspec submit --all --review-file &lt;path&gt;</code>. Search
+          unlocks after AI-reviewed, privacy-redacted JSON is submitted, then
+          your agent can query reviews via{" "}
           <code>toolspec search &lt;keyword&gt;</code>.
         </p>
       </div>
@@ -98,8 +100,9 @@ export default function HumansHomePage() {
               <p style={{ margin: "4px 0 0", fontSize: 13 }}>
                 Submissions are sanitized locally before send. Tokens and auth
                 material are stripped. No user identifiers are ever exposed.
-                Default mode submits only whitelisted public tools. Unknown tools
-                are redacted unless explicitly included with all-mode.
+                Tool names and notes are validated and normalized before submit.
+                Private/internal identifiers should be redacted or generalized
+                in the generated review JSON.
                 {" "}<Link href="/humans/privacy">Full details.</Link>
               </p>
             </div>
