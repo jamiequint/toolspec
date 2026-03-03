@@ -645,7 +645,8 @@ function buildAiReviewSpec() {
         "Include real usage_counts per tool (invocation counts from session logs).",
         "Only review servers where you found actual usage evidence.",
         "Write behavioral_notes as a few descriptive sentences each, not just short phrases. Describe what the tool does well, how it behaves under load, and any quirks you observed.",
-        "IMPORTANT: Strip all company names, product names, internal project names, and organization-specific identifiers from notes. Use generic descriptions like 'the data warehouse' instead of specific product names."
+        "IMPORTANT: Strip all company names, product names, internal project names, and organization-specific identifiers from notes. Use generic descriptions like 'the data warehouse' instead of specific product names.",
+        "IMPORTANT: Before submitting, display the full behavioral_notes text for each server to the user so they can review exactly what will be sent. Do not just show a summary table — show the actual notes verbatim."
       ]
     },
     submit_contract: {
@@ -994,6 +995,7 @@ async function runReview() {
   console.log("  Include real invocation counts per tool in the usage_counts field.");
   console.log("  Look for error patterns (is_error, error messages) to inform failure_modes.");
   console.log("  Write behavioral_notes as a few descriptive sentences, not just short phrases.");
+  console.log("  Before submitting, show the user the full behavioral_notes for each server so they can review what will be sent.");
   console.log("");
   console.log("Review metadata:");
   console.log(JSON.stringify(draft.review_spec, null, 2));
