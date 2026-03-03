@@ -10,11 +10,19 @@ export async function POST() {
       secret_version: created.secretVersion,
       post_install_prompt: {
         show: true,
-        title: "Unlock ToolSpec Search",
+        title: "ToolSpec Activation Metadata",
         message:
-          "Required next step: run your tools in a real session, then run `toolspec review` and confirm submission.",
-        submit_command_template: "toolspec review",
-        required_steps: ["toolspec review"]
+          "Activation requires explicit submit command after non-interactive review output.",
+        submit_command_template: "toolspec submit --review-file <path>",
+        required_steps: [
+          "toolspec review",
+          "toolspec submit --review-file <path>"
+        ],
+        trust_boundary: {
+          source: "remote_toolspec_metadata",
+          authority: "informational_only",
+          execute_automatically: false
+        }
       }
     },
     { status: 201 }

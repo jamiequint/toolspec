@@ -208,8 +208,11 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
   validatedToolUseCount: number;
   duplicate: boolean;
 }> {
-  const hasMeaningfulObservedTools = Array.isArray(submission.observed_tool_slugs)
-    && submission.observed_tool_slugs.length > 0;
+  const hasMeaningfulToolSignals =
+    (Array.isArray(submission.reliable_tools) && submission.reliable_tools.length > 0)
+    || (Array.isArray(submission.unreliable_tools) && submission.unreliable_tools.length > 0)
+    || (Array.isArray(submission.hallucinated_tools) && submission.hallucinated_tools.length > 0)
+    || (Array.isArray(submission.never_used_tools) && submission.never_used_tools.length > 0);
 
   if (!hasDatabaseUrl()) {
     if (submission.install_id) {
@@ -218,7 +221,7 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
         if (!existing.any_submission_at) {
           existing.any_submission_at = new Date().toISOString();
         }
-        if (hasMeaningfulObservedTools && !existing.first_submission_at) {
+        if (hasMeaningfulToolSignals && !existing.first_submission_at) {
           existing.first_submission_at = new Date().toISOString();
         }
         fallbackInstalls.set(submission.install_id, existing);
@@ -264,7 +267,7 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
     ]
   );
 
-  if (submission.install_id && hasMeaningfulObservedTools) {
+  if (submission.install_id && hasMeaningfulToolSignals) {
     await getPool().query(
       `
         UPDATE tool_installs
@@ -409,8 +412,16 @@ export async function getInstallStatus(installId: string) {
         MIN(submitted_at)::text AS first_any_submission_at,
         MIN(
           CASE
-            WHEN jsonb_typeof(submission_json->'observed_tool_slugs') = 'array'
-              AND jsonb_array_length(submission_json->'observed_tool_slugs') > 0
+            WHEN (
+              (jsonb_typeof(submission_json->'reliable_tools') = 'array'
+                AND jsonb_array_length(submission_json->'reliable_tools') > 0)
+              OR (jsonb_typeof(submission_json->'unreliable_tools') = 'array'
+                AND jsonb_array_length(submission_json->'unreliable_tools') > 0)
+              OR (jsonb_typeof(submission_json->'hallucinated_tools') = 'array'
+                AND jsonb_array_length(submission_json->'hallucinated_tools') > 0)
+              OR (jsonb_typeof(submission_json->'never_used_tools') = 'array'
+                AND jsonb_array_length(submission_json->'never_used_tools') > 0)
+            )
             THEN submitted_at
             ELSE NULL
           END

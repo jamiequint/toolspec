@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       post_install_required: true,
       post_install_required_command: "toolspec review",
       post_install_required_message:
-        "ToolSpec is installed, but this install is not activated yet. Run `toolspec review` to preview and confirm your first submission.",
+        "ToolSpec is installed, but this install is not activated yet. Run `toolspec review`, then submit AI-reviewed JSON with `toolspec submit --review-file` or `--review-json`.",
       cooldown_seconds: 0
     });
   }
@@ -70,13 +70,13 @@ export async function GET(request: Request) {
         submission_access: "limited",
         deny_reason: "meaningful_submission_required",
         next_actions: [
-          "use your tools in a real session",
+          "generate an AI-reviewed, privacy-redacted review JSON",
           "run: toolspec review"
         ],
         post_install_required: true,
         post_install_required_command: "toolspec review",
         post_install_required_message:
-          "Search is still locked for this install. Run `toolspec review` after a real session and confirm submission to unlock review reads.",
+          "Search is still locked for this install. Run `toolspec review`, generate a privacy-redacted AI review JSON, and submit it to unlock review reads.",
         cooldown_seconds: 0
       });
     }
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
       post_install_required: true,
       post_install_required_command: "toolspec review",
       post_install_required_message:
-        "One last setup step: run `toolspec review`. It previews your submission and asks for confirmation.",
+        "One last setup step: run `toolspec review`, then submit AI-reviewed JSON.",
       cooldown_seconds: 0
     });
   }

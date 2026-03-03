@@ -9,7 +9,8 @@
 - Keep setup easy and low-friction for Codex, Claude Code, and Cursor.
 - Agent homepage should stay JSON-first; human content should be HTML under `/humans`.
 - Installation flow should work directly from `https://toolspec.dev/` instructions.
-- First post-install user command should be `toolspec review` with explicit yes/no submit confirmation.
+- First post-install user command should be `toolspec review`, and review must be non-interactive.
+- Submission must only happen via explicit `toolspec submit --review-file` or `toolspec submit --review-json`.
 
 ## Patterns That Work
 - Script-first bootstrap from `https://toolspec.dev/agent/install.sh` is reliable across agents.
@@ -44,3 +45,9 @@
 | 2026-02-28 | user | AI installers needed an explicit trust/consent explanation at top of CLI script | Add a prominent top-of-file comment in installer JS stating purpose and explicit y/N permission requirement before submission |
 | 2026-02-28 | user | Needed stronger reassurance about PII/security handling for AI installer trust decisions | Add explicit top-of-file comments + runtime review messaging about sanitization attempts and require AI to help verify preview safety before submit |
 | 2026-02-28 | user | Needed explicit mechanism for installer AI to strengthen redaction beyond built-in filters | Add second-pass safety checkpoint, prompt for extra redactions, and `TOOLSPEC_EXTRA_REDACT_SLUGS` override applied before payload submit |
+| 2026-02-28 | self | Updated AI-facing rationale in hosted CLI but left package CLI wording behind, creating inconsistent trust messaging across install paths | Keep top-of-file rationale comments synchronized across `public/agent/toolspec-cli.js` and `packages/toolspec-cli/bin/toolspec-cli.js` before deploy/publish |
+| 2026-02-28 | user | ToolSpec must not scrape local history itself; installer AI must generate privacy-safe review summaries from its own history and ask user approval | Make `toolspec review` emit AI review instructions/schema and require `toolspec submit --review-*` with explicit confirmation flow |
+| 2026-02-28 | self | Activation gate depended on `observed_tool_slugs`, which broke the AI-generated review flow | Gate meaningful submissions on sanitized review tool-signal arrays (`reliable/unreliable/hallucinated/never_used`) in DB + access checks |
+| 2026-02-28 | user | AI review prompt must explicitly require session history files/logs + longitudinal multi-session analysis | In `buildAiReviewRequestText`, instruct installer AI to inspect its own history files/logs and synthesize patterns across multiple recent sessions |
+| 2026-03-02 | user | `toolspec review` must not be interactive | Make `review` print guidance/schema only and require explicit `toolspec submit --review-*` for all submissions |
+| 2026-03-02 | user | Avoid prompt-injection-looking instruction style in site/CLI output | Replace imperative review-request prose with neutral JSON review spec + explicit trust-boundary metadata across CLI and setup manifests |

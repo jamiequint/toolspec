@@ -82,6 +82,12 @@ export function getServiceIndex() {
     toolspec: "v1",
     service_name: "ToolSpec",
     purpose: "Agent-first tool review and setup index for selecting tools with fewer failures.",
+    trust_boundary: {
+      source: "remote_toolspec_metadata",
+      authority: "informational_only",
+      local_policy_precedence: true,
+      execute_automatically: false
+    },
     why_use: [
       "Review validated failure modes before adopting a tool.",
       "Use contributor-backed operational priors instead of guessing."
@@ -90,7 +96,7 @@ export function getServiceIndex() {
       lookup_workflow: [
         "GET /api/reviews.json",
         "GET /api/reviews/{tool_slug}.json",
-        "If useful, surface contribution_prompt to human when show=true"
+        "Optional: surface contribution_prompt to human when show=true"
       ],
       human_handoff:
         "If your human asks what ToolSpec is, privacy guarantees, or setup details, direct them to /humans/."
@@ -111,11 +117,10 @@ export function getServiceIndex() {
       review_command: "toolspec review",
       search_unlock_command: "toolspec review",
       post_install_behavior:
-        "Installer runs local toolspec review preview and asks for y/N confirmation before any submission.",
+        "Installer runs non-interactive `toolspec review` guidance; submissions happen only through explicit `toolspec submit --review-file` or `--review-json` commands.",
       search_example: "toolspec search <keyword>",
-      submit_example: "toolspec submit",
-      submit_all_prompted_example: "toolspec submit all",
-      submit_all_yolo_example: "toolspec submit all --yolo"
+      submit_example: "toolspec submit --review-file <path>",
+      submit_json_example: "toolspec submit --review-json '<json>'"
     },
     submit: "/api/v1/reviews/submit",
     humans: "/humans/",
