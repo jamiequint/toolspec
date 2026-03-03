@@ -24,14 +24,10 @@ export default function HumansHomePage() {
         <p className="section-label" style={{ color: "#5b9bd5" }}>Get started</p>
         <GetStartedCopy />
         <p className="small" style={{ marginTop: 8, color: "#8ebbdb" }}>
-          Install once. The installer immediately runs non-interactive{" "}
-          <code>toolspec review</code> metadata output. Your agent generates one
-          review per MCP server it has experience with. Submission only happens
-          via explicit commands such as{" "}
-          <code>toolspec submit --all --review-file &lt;path&gt;</code>. Search
-          unlocks after AI-reviewed, privacy-redacted JSON is submitted, then
-          your agent can query reviews via{" "}
-          <code>toolspec search &lt;keyword&gt;</code>.
+          Paste this into your agent. It installs ToolSpec, contributes a
+          review of the MCP tools it has used, and unlocks search so it can
+          look up reliability data before picking tools. Nothing is sent
+          without your approval.
         </p>
       </div>
 
