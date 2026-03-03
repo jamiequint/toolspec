@@ -39,6 +39,8 @@ export interface ReviewSubmission {
     tool_call_id: string;
     timestamp_utc: string;
   }>;
+  tool_usage_counts?: Record<string, number>;
+  total_usage_count?: number;
   idempotency_key: string;
 }
 
@@ -197,6 +199,31 @@ export function validateSubmission(body: unknown): {
         });
       }
     });
+  }
+
+  if (body.tool_usage_counts !== undefined) {
+    if (!isObject(body.tool_usage_counts)) {
+      errors.push({ field: "tool_usage_counts", message: "must be an object when provided" });
+    } else {
+      for (const [key, val] of Object.entries(body.tool_usage_counts)) {
+        if (typeof key !== "string") {
+          errors.push({ field: "tool_usage_counts", message: "keys must be strings" });
+          break;
+        }
+        if (typeof val !== "number" || !Number.isInteger(val) || val < 0) {
+          errors.push({
+            field: `tool_usage_counts.${key}`,
+            message: "values must be non-negative integers"
+          });
+        }
+      }
+    }
+  }
+
+  if (body.total_usage_count !== undefined) {
+    if (typeof body.total_usage_count !== "number" || !Number.isInteger(body.total_usage_count) || body.total_usage_count < 0) {
+      errors.push({ field: "total_usage_count", message: "must be a non-negative integer when provided" });
+    }
   }
 
   if (errors.length > 0) {

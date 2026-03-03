@@ -121,6 +121,10 @@ async function ensureDbReady() {
           "ALTER TABLE review_submissions ADD COLUMN IF NOT EXISTS install_id TEXT"
         );
 
+        await client.query(
+          "ALTER TABLE review_submissions ADD COLUMN IF NOT EXISTS total_usage_count INTEGER DEFAULT 0"
+        );
+
         await client.query("DELETE FROM tool_reviews WHERE tool_slug = 'groundeffect'");
 
         const existingCountResult = await client.query<{ count: string }>(
@@ -239,6 +243,7 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
 
   const reviewId = `rev_${randomUUID()}`;
   const validatedToolUseCount = submission.evidence.length;
+  const totalUsageCount = typeof submission.total_usage_count === "number" ? submission.total_usage_count : 0;
 
   const inserted = await getPool().query<SubmissionRow>(
     `
@@ -249,10 +254,11 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
         install_id,
         idempotency_key,
         validated_tool_use_count,
+        total_usage_count,
         status,
         submission_json
       )
-      VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7::jsonb)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'submitted', $8::jsonb)
       ON CONFLICT (idempotency_key) DO NOTHING
       RETURNING review_id, validated_tool_use_count
     `,
@@ -263,6 +269,7 @@ export async function storeReviewSubmission(submission: ReviewSubmission): Promi
       submission.install_id ?? null,
       submission.idempotency_key,
       validatedToolUseCount,
+      totalUsageCount,
       JSON.stringify(submission)
     ]
   );

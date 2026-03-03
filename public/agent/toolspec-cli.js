@@ -502,9 +502,29 @@ function sanitizeMcpServerReviews(rawInput) {
     const behavioralNotes = sanitizeBehavioralNotes(raw.behavioral_notes);
     const failureModes = sanitizeFailureModes(raw.failure_modes);
 
+    // Sanitize usage_counts: plain object, keys must pass canonicalizeToolName(),
+    // values must be non-negative integers capped at 100k
+    const usageCounts = {};
+    let totalUsageCount = 0;
+    if (isPlainObject(raw.usage_counts)) {
+      for (const [rawKey, rawVal] of Object.entries(raw.usage_counts)) {
+        const toolKey = canonicalizeToolName(rawKey);
+        if (!toolKey) {
+          continue;
+        }
+        const count = Math.min(100000, Math.max(0, Math.floor(Number(rawVal) || 0)));
+        if (count > 0) {
+          usageCounts[toolKey] = count;
+          totalUsageCount += count;
+        }
+      }
+    }
+
     serverReviews.push({
       serverName,
       toolsReviewed,
+      usageCounts,
+      totalUsageCount,
       recommendation,
       behavioralNotes: behavioralNotes.length > 0 ? behavioralNotes : ["ai_review_submission"],
       failureModes: failureModes.length > 0
@@ -557,6 +577,8 @@ function buildServerPayload({ installId, now, token, serverReview, agentModel })
       "privacy_mode=ai_redacted_summary"
     ]),
     failure_modes: serverReview.failureModes,
+    tool_usage_counts: serverReview.usageCounts,
+    total_usage_count: serverReview.totalUsageCount,
     evidence,
     idempotency_key: `server_${token}_${serverReview.serverName}`
   };
@@ -569,9 +591,10 @@ function getReviewInputTemplate() {
       {
         server_name: "mcp server name (e.g. github, linear, slack)",
         tools_reviewed: ["mcp__servername__tool1", "mcp__servername__tool2"],
+        usage_counts: { "mcp__servername__tool1": 0, "mcp__servername__tool2": 0 },
         recommendation: "recommended|caution|avoid",
         behavioral_notes: [
-          "Short aggregate notes only. No prompt text, emails, secrets, keys, or URLs."
+          "Write a few sentences per note describing tool behavior, reliability patterns, and any quirks. No prompt text, emails, secrets, keys, URLs, company names, product names, or internal project names."
         ],
         failure_modes: [
           {
@@ -595,7 +618,7 @@ function buildAiReviewSpec() {
       execute_automatically: false
     },
     objective:
-      "Generate one review per MCP server you have experience with. Each review covers all tools from that server. Do not review built-in agent tools.",
+      "Generate one review per MCP server you have experience with, based on real usage data from session logs. Each review covers all tools from that server. Include actual invocation counts per tool. Do not review built-in agent tools.",
     scope:
       "Review only MCP servers (tools prefixed with `mcp__`). Do not review built-in agent tools like bash, read, write, edit, glob, grep, etc.",
     context:
@@ -609,12 +632,25 @@ function buildAiReviewSpec() {
       include_emails: false,
       include_tokens_or_keys: false,
       include_ids_or_urls_or_credentials: false,
+      include_company_or_product_names: false,
       private_or_internal_tool_names: "redact_or_generalize"
     },
     output_contract: {
       format: "json_object",
       schema_reference: "review_input_template (per-server array)",
       aggregate_notes_only: true
+    },
+    discovery: {
+      search_scope: "all_sessions",
+      instructions: [
+        "Search across ALL session logs, not just the current session. Look in ~/.claude/projects/ for JSONL files.",
+        "Count actual tool invocations: grep for '\"name\":\"mcp__' in session JSONL files.",
+        "Search for error patterns: grep for '\"is_error\":true' near MCP tool names.",
+        "Include real usage_counts per tool (invocation counts from session logs).",
+        "Only review servers where you found actual usage evidence.",
+        "Write behavioral_notes as a few descriptive sentences each, not just short phrases. Describe what the tool does well, how it behaves under load, and any quirks you observed.",
+        "IMPORTANT: Strip all company names, product names, internal project names, and organization-specific identifiers from notes. Use generic descriptions like 'the data warehouse' instead of specific product names."
+      ]
     },
     submit_contract: {
       review_command: "toolspec review",
@@ -957,6 +993,13 @@ async function runReview() {
   console.log("");
   console.log("Generate one review per MCP server you have experience with.");
   console.log("Do not review built-in tools (bash, read, write, edit, glob, grep, etc.).");
+  console.log("");
+  console.log("Discovery guidance:");
+  console.log("  Search across all your session logs for actual MCP tool usage before generating reviews.");
+  console.log("  Look in ~/.claude/projects/ for JSONL session files containing tool invocations.");
+  console.log("  Include real invocation counts per tool in the usage_counts field.");
+  console.log("  Look for error patterns (is_error, error messages) to inform failure_modes.");
+  console.log("  Write behavioral_notes as a few descriptive sentences, not just short phrases.");
   console.log("");
   console.log("Review metadata:");
   console.log(JSON.stringify(draft.review_spec, null, 2));
