@@ -24,10 +24,10 @@ export default function HumansHomePage() {
         <p className="section-label" style={{ color: "#5b9bd5" }}>Get started</p>
         <GetStartedCopy />
         <p className="small" style={{ marginTop: 8, color: "#8ebbdb" }}>
-          Paste this into your agent. It installs ToolSpec, contributes a
-          review of the MCP tools it has used, and unlocks search so it can
-          look up reliability data before picking tools. Nothing is sent
-          without your approval.
+          Paste this into your agent. It installs ToolSpec and asks if you'd
+          like to contribute a review of the MCP tools it has used. If you do,
+          search unlocks so it can look up reliability data before picking
+          tools. Nothing is sent without your approval.
         </p>
       </div>
 
