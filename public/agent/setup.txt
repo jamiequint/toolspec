@@ -49,7 +49,9 @@ Review data requirements:
 
 API endpoints (after activation):
 1) GET https://toolspec.dev/api/reviews.json
-2) GET https://toolspec.dev/api/reviews/{tool_slug}.json
+2) GET https://toolspec.dev/api/reviews/{server_slug}.json
+3) GET https://toolspec.dev/api/v1/recommendations?q=<what_you_need>
 
 Search:
 - toolspec search <keyword>
+- toolspec recommend <what_you_need>

@@ -29,7 +29,7 @@ export default function HumansPrivacyPage() {
         </h2>
         <ul>
           <li>AI-generated review JSON using the ToolSpec schema</li>
-          <li>Redacted/generalized tool slugs and aggregate operational notes</li>
+          <li>Redacted/generalized server slugs and aggregate operational notes</li>
           <li>Operational outcomes and failure-mode summaries</li>
           <li>Evidence references required for validation</li>
         </ul>

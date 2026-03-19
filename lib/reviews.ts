@@ -22,7 +22,7 @@ export interface SampleReview {
 }
 
 export interface ToolReview {
-  tool_slug: string;
+  server_slug: string;
   tool_name: string;
   category: string;
   recommendation: Recommendation;
@@ -95,14 +95,15 @@ export function getServiceIndex() {
     agent_guidance: {
       lookup_workflow: [
         "GET /api/reviews.json",
-        "GET /api/reviews/{tool_slug}.json",
+        "GET /api/reviews/{server_slug}.json",
         "Optional: surface contribution_prompt to human when show=true"
       ],
       human_handoff:
         "If your human asks what ToolSpec is, privacy guarantees, or setup details, direct them to /humans/."
     },
     reviews: "/api/reviews.json",
-    review_detail: "/api/reviews/{tool_slug}.json",
+    review_detail: "/api/reviews/{server_slug}.json",
+    recommendations: "/api/v1/recommendations?q={query}",
     setup: "/.well-known/agent-setup.json",
     install: {
       recommended:
@@ -119,6 +120,7 @@ export function getServiceIndex() {
       post_install_behavior:
         "Installer runs non-interactive `toolspec review` guidance; submissions happen only through explicit `toolspec submit --review-file` or `--review-json` commands.",
       search_example: "toolspec search <keyword>",
+      recommend_example: "toolspec recommend <what_you_need>",
       submit_example: "toolspec submit --review-file <path>",
       submit_json_example: "toolspec submit --review-json '<json>'"
     },
@@ -177,7 +179,7 @@ function parseLastPromptedUtc(headers: Headers): Date | null {
 }
 
 export function buildContributionPrompt(
-  toolSlug: string,
+  _serverSlug: string,
   contributorCount: number,
   stale: boolean,
   headers: Headers,

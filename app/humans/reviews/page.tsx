@@ -44,9 +44,9 @@ export default async function HumansReviewsPage() {
         const staleness = getStaleness(review.last_contribution_utc, now);
         return (
           <Link
-            href={`/humans/reviews/${review.tool_slug}`}
+            href={`/humans/reviews/${review.server_slug}`}
             className="review-card"
-            key={review.tool_slug}
+            key={review.server_slug}
           >
             <h2>{review.tool_name}</h2>
             <div className="review-category">{review.category}</div>

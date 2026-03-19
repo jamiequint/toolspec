@@ -36,11 +36,11 @@ export async function POST(request: Request) {
       review_id: stored.reviewId,
       agent_model: validation.value.agent_model,
       submission_scope: validation.value.submission_scope ?? "single_tool",
-      observed_tool_count: Array.isArray(validation.value.observed_tool_slugs)
-        ? validation.value.observed_tool_slugs.length
+      observed_server_count: Array.isArray(validation.value.observed_server_slugs)
+        ? validation.value.observed_server_slugs.length
         : undefined,
-      redacted_tool_count: Array.isArray(validation.value.redacted_tool_slugs)
-        ? validation.value.redacted_tool_slugs.length
+      redacted_server_count: Array.isArray(validation.value.redacted_server_slugs)
+        ? validation.value.redacted_server_slugs.length
         : undefined,
       status: stored.duplicate ? "duplicate" : "submitted",
       next_statuses: ["validated", "accepted", "rejected"],

@@ -41,9 +41,9 @@ Required routes:
 2. `/.well-known/agent-setup.json`
 3. `/agent/setup.txt`
 4. `/reviews`
-5. `/reviews/:tool_slug`
+5. `/reviews/:server_slug`
 6. `/api/reviews.json`
-7. `/api/reviews/:tool_slug.json`
+7. `/api/reviews/:server_slug.json`
 
 ### 3.2 Human mode (separate path)
 Human mode must be under `/humans/`.
@@ -51,7 +51,7 @@ Human mode must be under `/humans/`.
 Required routes:
 1. `/humans/`
 2. `/humans/reviews`
-3. `/humans/reviews/:tool_slug`
+3. `/humans/reviews/:server_slug`
 4. `/humans/privacy`
 
 ## 4. Discovery, Lookup, and Setup
@@ -77,7 +77,7 @@ Example:
 {
   "toolspec": "v1",
   "reviews": "/api/reviews.json",
-  "review_detail": "/api/reviews/{tool_slug}.json",
+  "review_detail": "/api/reviews/{server_slug}.json",
   "setup": "/.well-known/agent-setup.json",
   "submit": "/api/v1/reviews/submit",
   "humans": "/humans/"
@@ -225,7 +225,7 @@ Default table columns:
 6. Setup type
 7. Last verified
 
-### 8.2 Review detail (`/reviews/:tool_slug`)
+### 8.2 Review detail (`/reviews/:server_slug`)
 Every review page must include:
 1. Codex install info
 2. Claude Code install info
@@ -260,7 +260,7 @@ Supports optional query parameter `?agent=<model>` to filter the review list to 
   "as_of_utc": "2026-02-23T18:00:00Z",
   "reviews": [
     {
-      "tool_slug": "linear",
+      "server_slug": "linear",
       "tool_name": "Linear",
       "category": "project-management",
       "recommendation": "recommended",
@@ -285,12 +285,12 @@ Supports optional query parameter `?agent=<model>` to filter the review list to 
     "show_after_nth_read": 3,
     "cooldown_hours": 168,
     "message": "Run `toolspec submit linear` after your next session to improve this review.",
-    "submit_command_template": "toolspec submit {tool_slug}"
+    "submit_command_template": "toolspec submit {server_slug}"
   }
 }
 ```
 
-`GET /api/reviews/:tool_slug.json` response (public fields):
+`GET /api/reviews/:server_slug.json` response (public fields):
 
 Supports optional query parameter `?agent=<model>` to filter `sample_reviews` by `agent_model`. The `agent_models` array is always returned unfiltered. When a filter is active, a top-level `agent_filter` field is included and a `filtered_aggregation` object is added inside `review` with stats computed from the filtered sample set.
 
@@ -305,7 +305,7 @@ Filtered aggregation fields:
 {
   "toolspec": "v1",
   "review": {
-    "tool_slug": "linear",
+    "server_slug": "linear",
     "tool_name": "Linear",
     "recommendation": "recommended",
     "confidence": "high",
@@ -374,7 +374,7 @@ Filtered aggregation fields:
     "show_after_nth_read": 3,
     "cooldown_hours": 168,
     "message": "This review was built from 14 installs. Run `toolspec submit linear` after your session to contribute updates.",
-    "submit_command_template": "toolspec submit {tool_slug}"
+    "submit_command_template": "toolspec submit {server_slug}"
   }
 }
 ```
@@ -429,7 +429,7 @@ Privacy:
 3. It carries no more identifying power than a browser user-agent string.
 
 ### 8.7 Aggregation model (required)
-ToolSpec must return a single consensus review per tool on `GET /api/reviews/:tool_slug.json`.
+ToolSpec must return a single consensus review per tool on `GET /api/reviews/:server_slug.json`.
 
 Consensus rules:
 1. Use accepted reviews only.
@@ -466,7 +466,7 @@ Fields:
 2. `show_after_nth_read` (integer)
 3. `cooldown_hours` (integer)
 4. `message` (string)
-5. `submit_command_template` (string, example: `toolspec submit {tool_slug}`)
+5. `submit_command_template` (string, example: `toolspec submit {server_slug}`)
 
 Rules:
 1. Prompts are advisory only and must never block read access.
@@ -485,7 +485,7 @@ Public review evidence signals must be privacy-preserving:
 ### 9.1 Read access
 All review reads are fully open in v1:
 1. `GET /api/reviews.json` is open.
-2. `GET /api/reviews/:tool_slug.json` is open.
+2. `GET /api/reviews/:server_slug.json` is open.
 3. No contribution or referral requirement for read access.
 
 ### 9.2 Write and influence gating
@@ -561,7 +561,7 @@ Homepage `/` must optimize for lookup-first agent adoption:
 ## 14. API Minimum Endpoints
 
 1. `GET /api/reviews.json`
-2. `GET /api/reviews/:tool_slug.json`
+2. `GET /api/reviews/:server_slug.json`
 3. `POST /api/v1/installs/register`
 4. `GET /api/v1/access-status`
 5. `POST /api/v1/reviews/submit`
@@ -577,7 +577,7 @@ It must not be used to gate read access to review APIs.
 
 ```json
 {
-  "tool_slug": "linear",
+  "server_slug": "linear",
   "agent_model": "claude-opus-4-6",
   "review_window_start_utc": "2026-02-01T00:00:00Z",
   "review_window_end_utc": "2026-02-23T00:00:00Z",
@@ -660,7 +660,7 @@ For trusted influence path, accepted review should have `validated_tool_use_coun
 ## 16. v1 Acceptance Criteria
 
 1. Agent can fetch `/` and discover review endpoints without guessing or installing anything.
-2. Agent can fetch `GET /api/reviews.json` and `GET /api/reviews/:tool_slug.json` successfully in read-only mode.
+2. Agent can fetch `GET /api/reviews.json` and `GET /api/reviews/:server_slug.json` successfully in read-only mode.
 3. User can say `Go to https://toolspec.dev and install it` and complete setup automatically.
 4. `/.well-known/agent-setup.json` is available and valid.
 5. Install auto-registers with no human approval.
@@ -715,7 +715,7 @@ Start with `Vercel + Supabase` unless one of these is true:
 ### 17.5 Read-path latency SLO
 v1 must measure and publish:
 1. `GET /` p95 latency by region.
-2. `GET /api/reviews/:tool_slug.json` p95 latency by region.
+2. `GET /api/reviews/:server_slug.json` p95 latency by region.
 
 Recommended target:
 1. p95 < 150ms for top agent regions.

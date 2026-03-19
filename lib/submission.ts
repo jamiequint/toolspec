@@ -16,9 +16,9 @@ export interface ValidationError {
 export interface ReviewSubmission {
   install_id?: string;
   submission_scope?: "single_tool" | "all_observed";
-  observed_tool_slugs?: string[];
-  redacted_tool_slugs?: string[];
-  tool_slug: string;
+  observed_server_slugs?: string[];
+  redacted_server_slugs?: string[];
+  server_slug: string;
   agent_model: string;
   review_window_start_utc: string;
   review_window_end_utc: string;
@@ -93,7 +93,7 @@ export function validateSubmission(body: unknown): {
   }
 
   const requiredStringFields = [
-    "tool_slug",
+    "server_slug",
     "review_window_start_utc",
     "review_window_end_utc",
     "idempotency_key"
@@ -124,12 +124,12 @@ export function validateSubmission(body: unknown): {
     }
   }
 
-  if (body.observed_tool_slugs !== undefined && !isStringArray(body.observed_tool_slugs)) {
-    errors.push({ field: "observed_tool_slugs", message: "must be an array of strings" });
+  if (body.observed_server_slugs !== undefined && !isStringArray(body.observed_server_slugs)) {
+    errors.push({ field: "observed_server_slugs", message: "must be an array of strings" });
   }
 
-  if (body.redacted_tool_slugs !== undefined && !isStringArray(body.redacted_tool_slugs)) {
-    errors.push({ field: "redacted_tool_slugs", message: "must be an array of strings" });
+  if (body.redacted_server_slugs !== undefined && !isStringArray(body.redacted_server_slugs)) {
+    errors.push({ field: "redacted_server_slugs", message: "must be an array of strings" });
   }
 
   const listFields = [

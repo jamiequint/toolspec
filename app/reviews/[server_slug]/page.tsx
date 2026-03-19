@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStaleness } from "@/lib/reviews";
-import { getReviewBySlug } from "@/lib/review-db";
+import { getReviewByServerSlug } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewDetailPage({
   params
 }: {
-  params: { tool_slug: string };
+  params: { server_slug: string };
 }) {
-  const review = await getReviewBySlug(params.tool_slug);
+  const review = await getReviewByServerSlug(params.server_slug);
   if (!review) {
     notFound();
   }
@@ -82,7 +82,7 @@ export default async function ReviewDetailPage({
       </div>
 
       <div className="small">
-        Detail JSON: <Link href={`/api/reviews/${review.tool_slug}.json`}>{`/api/reviews/${review.tool_slug}.json`}</Link>
+        Detail JSON: <Link href={`/api/reviews/${review.server_slug}.json`}>{`/api/reviews/${review.server_slug}.json`}</Link>
       </div>
     </main>
   );

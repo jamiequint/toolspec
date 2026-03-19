@@ -1,0 +1,25 @@
+{
+  "name": "toolspec-cli",
+  "version": "0.1.0",
+  "description": "ToolSpec installer and CLI for agent review workflows",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "toolspec": "bin/toolspec-cli.js",
+    "toolspec-cli": "bin/toolspec-cli.js"
+  },
+  "files": [
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "check": "node ./bin/toolspec-cli.js help"
+  }
+}

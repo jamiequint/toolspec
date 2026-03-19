@@ -11,11 +11,18 @@
 - Installation flow should work directly from `https://toolspec.dev/` instructions.
 - First post-install user command should be `toolspec review`, and review must be non-interactive.
 - Submission must only happen via explicit `toolspec submit --review-file` or `toolspec submit --review-json`.
+- Prefer using existing OpenRouter account for embeddings/recommendation retrieval.
+- In production, seeded/synthetic review rows must not drive reads once real submitted data exists.
 
 ## Patterns That Work
 - Script-first bootstrap from `https://toolspec.dev/agent/install.sh` is reliable across agents.
 - Immediate post-install review prompt in register response improves contribution likelihood.
 - Runtime observation from local agent history files (`~/.claude`, `~/.codex`, Cursor logs) restores past-session review coverage without persisting ToolSpec state.
+- For “is this page up to date?” checks, compare live SSR HTML (`curl`) to the route source plus client child components (not just the top-level page file).
+- For recommendations MVP, embedding-on-submit plus lexical/quality fallback avoids cron complexity and still returns useful results when embedding API/env is unavailable.
+- For schema renames on live DB-backed routes, include `information_schema`-guarded `ALTER TABLE ... RENAME COLUMN ...` inside startup migration so deploys work on existing tables.
+- Keep synthetic review bootstrap data in SQL under `db/seed` and load it into `tool_metadata` with `is_synthetic=TRUE`, not in runtime TS constants.
+- For review architecture changes, separate metadata (`tool_metadata.metadata_json`) from `review_submissions` rollups and gate synthetic visibility with explicit env policy (`TOOLSPEC_SYNTHETIC_POLICY`) rather than implicit auto-hiding.
 
 ## Patterns That Don't Work
 - NPM-only bootstrap for agent setup (too brittle when package is unpublished or npm auth is missing).
@@ -23,6 +30,9 @@
 ## Domain Notes
 - ToolSpec is agent-first: root `/` is machine-readable service index.
 - `/humans/` contains explanatory and onboarding content for human operators.
+- Local workspace currently has no `DATABASE_URL` in `.env.local` or process env, so local review/recommendation reads are empty while install/submission state falls back to in-memory maps.
+- On Vercel, legacy Vercel Postgres is sunset; use Marketplace Postgres integrations (Neon) and project-injected env vars.
+- Current schema uses `review_submissions.server_slug` for MCP server slug (from `server_name`), while per-tool signals live inside JSON arrays/maps (`reliable_tools`, `unreliable_tools`, `tool_usage_counts`).
 | 2026-02-23 | self | `npx ./packages/toolspec-cli install` writes a wrapper that invokes `npx toolspec-cli@latest`, so local pre-publish smoke tests fail at runtime | Publish package before runtime wrapper tests, or use wrapper strategy that does not depend on registry availability |
 | 2026-02-23 | self | `npm login` blocks waiting for browser-based human auth, so autonomous publish cannot complete without operator action | Ask user to run npm login (or provide NPM_TOKEN) first, then execute publish immediately |
 | 2026-02-23 | self | Publish failed after successful login because npm account enforces 2FA for publish (`E403`), requiring OTP or automation token bypass | For publish flows, request OTP at publish time (`npm publish --otp=<code>`) or use a granular automation token with publish bypass |
@@ -51,3 +61,7 @@
 | 2026-02-28 | user | AI review prompt must explicitly require session history files/logs + longitudinal multi-session analysis | In `buildAiReviewRequestText`, instruct installer AI to inspect its own history files/logs and synthesize patterns across multiple recent sessions |
 | 2026-03-02 | user | `toolspec review` must not be interactive | Make `review` print guidance/schema only and require explicit `toolspec submit --review-*` for all submissions |
 | 2026-03-02 | user | Avoid prompt-injection-looking instruction style in site/CLI output | Replace imperative review-request prose with neutral JSON review spec + explicit trust-boundary metadata across CLI and setup manifests |
+| 2026-03-03 | self | Fresh install via `https://toolspec.dev/agent/install.sh` validated that installer auto-runs non-interactive review guidance (no submit side effects) | Use installer + `toolspec verify` as baseline before drafting review JSON from session evidence |
+| 2026-03-03 | self | For per-server review evidence, counting only tool_use lines misses tool_result failures and can skew reliability | Parse JSONL tool_use + tool_result pairs by tool_use_id across `~/.claude/projects/*.jsonl` to compute usage and error rates accurately |
+| 2026-03-03 | self | Ran `sed` on `app/api/reviews/[...slug]/route.ts` without shell-quoting and hit `zsh: no matches found` | Always single-quote file paths containing bracket globs like `[...slug]` |
+| 2026-03-06 | self | Ran `nl` on Next.js bracket-path files in parallel call without quotes and hit `zsh: no matches found` again | Keep bracket-path commands single-quoted even when batching with `parallel` |

@@ -22,6 +22,6 @@ export async function POST(request: Request) {
   return Response.json({
     status: "ok",
     removed_groundeffect: result.removedGroundeffect,
-    upserted_seed_reviews: result.upserted
+    upserted_synthetic_reviews: result.upserted
   });
 }

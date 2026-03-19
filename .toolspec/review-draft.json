@@ -1,0 +1,427 @@
+{
+  "agent_model": "codex",
+  "mcp_server_reviews": [
+    {
+      "server_name": "bigquery",
+      "tools_reviewed": [
+        "mcp__bigquery__execute_sql",
+        "mcp__bigquery__get_table_info",
+        "mcp__bigquery__search_catalog",
+        "mcp__bigquery__list_table_ids",
+        "mcp__bigquery__list_dataset_ids"
+      ],
+      "usage_counts": {
+        "mcp__bigquery__execute_sql": 790,
+        "mcp__bigquery__get_table_info": 20,
+        "mcp__bigquery__search_catalog": 6,
+        "mcp__bigquery__list_table_ids": 3,
+        "mcp__bigquery__list_dataset_ids": 2
+      },
+      "recommendation": "recommended",
+      "behavioral_notes": [
+        "This server handled high-volume SQL execution well when queries were valid, and metadata discovery tools stayed dependable across sessions. Most failures were query-construction mistakes surfaced with clear error locations rather than random transport drops.",
+        "A practical pattern is to fetch table metadata first and then iterate SQL in short steps. Validation feedback is explicit enough to recover quickly without restarting the workflow."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "SQL call returns invalidQuery or notFound errors.",
+          "likely_cause": "Generated SQL references missing datasets/columns or violates aggregation rules.",
+          "recovery": "Use table metadata tools first, then simplify and rerun query with corrected column and GROUP BY logic.",
+          "frequency": "occasional"
+        },
+        {
+          "symptom": "Request aborts before completion.",
+          "likely_cause": "Transient cancellation or timeout in the execution path.",
+          "recovery": "Retry the same query and, if needed, reduce query scope before re-running.",
+          "frequency": "rare"
+        }
+      ]
+    },
+    {
+      "server_name": "fmp",
+      "tools_reviewed": [
+        "mcp__fmp__getIncomeStatement",
+        "mcp__fmp__getCashFlowStatement",
+        "mcp__fmp__getBalanceSheetStatement",
+        "mcp__fmp__getRatios",
+        "mcp__fmp__getCompanyProfile",
+        "mcp__fmp__getQuote",
+        "mcp__fmp__getKeyMetrics",
+        "mcp__fmp__getAnalystEstimates",
+        "mcp__fmp__getEarningsReports",
+        "mcp__fmp__getDividends",
+        "mcp__fmp__getMarketCap",
+        "mcp__fmp__getShareFloat",
+        "mcp__fmp__getFinancialScores",
+        "mcp__fmp__getStockGradeSummary",
+        "mcp__fmp__getStockPeers",
+        "mcp__fmp__getOwnerEarnings",
+        "mcp__fmp__getPriceTargetConsensus",
+        "mcp__fmp__getKeyMetricsTTM",
+        "mcp__fmp__getPriceTargetSummary",
+        "mcp__fmp__getDCFValuation",
+        "mcp__fmp__getStockSplits",
+        "mcp__fmp__getFinancialRatiosTTM",
+        "mcp__fmp__searchMergersAcquisitions",
+        "mcp__fmp__searchName",
+        "mcp__fmp__searchSymbol",
+        "mcp__fmp__getIncomeStatementTTM",
+        "mcp__fmp__getStockPriceChange",
+        "mcp__fmp__getCashFlowStatementTTM",
+        "mcp__fmp__getCompanyExecutives",
+        "mcp__fmp__getEmployeeCount",
+        "mcp__fmp__getIncomeStatementGrowth",
+        "mcp__fmp__getBalanceSheetStatementTTM",
+        "mcp__fmp__getEarningsCalendar",
+        "mcp__fmp__getHistoricalMarketCap",
+        "mcp__fmp__getQuoteShort",
+        "mcp__fmp__getRatingsSnapshot",
+        "mcp__fmp__getBalanceSheetStatementGrowth",
+        "mcp__fmp__getBatchMarketCap",
+        "mcp__fmp__getCashFlowStatementGrowth",
+        "mcp__fmp__getLeveredDCFValuation",
+        "mcp__fmp__getRevenueGeographicSegmentation",
+        "mcp__fmp__getRevenueProductSegmentation"
+      ],
+      "usage_counts": {
+        "mcp__fmp__getIncomeStatement": 81,
+        "mcp__fmp__getCashFlowStatement": 74,
+        "mcp__fmp__getBalanceSheetStatement": 46,
+        "mcp__fmp__getRatios": 45,
+        "mcp__fmp__getCompanyProfile": 43,
+        "mcp__fmp__getQuote": 36,
+        "mcp__fmp__getKeyMetrics": 34,
+        "mcp__fmp__getAnalystEstimates": 22,
+        "mcp__fmp__getEarningsReports": 22,
+        "mcp__fmp__getDividends": 20,
+        "mcp__fmp__getMarketCap": 19,
+        "mcp__fmp__getShareFloat": 19,
+        "mcp__fmp__getFinancialScores": 17,
+        "mcp__fmp__getStockGradeSummary": 17,
+        "mcp__fmp__getStockPeers": 13,
+        "mcp__fmp__getOwnerEarnings": 12,
+        "mcp__fmp__getPriceTargetConsensus": 11,
+        "mcp__fmp__getKeyMetricsTTM": 10,
+        "mcp__fmp__getPriceTargetSummary": 10,
+        "mcp__fmp__getDCFValuation": 9,
+        "mcp__fmp__getStockSplits": 9,
+        "mcp__fmp__getFinancialRatiosTTM": 7,
+        "mcp__fmp__searchMergersAcquisitions": 6,
+        "mcp__fmp__searchName": 6,
+        "mcp__fmp__searchSymbol": 6,
+        "mcp__fmp__getIncomeStatementTTM": 5,
+        "mcp__fmp__getStockPriceChange": 5,
+        "mcp__fmp__getCashFlowStatementTTM": 4,
+        "mcp__fmp__getCompanyExecutives": 4,
+        "mcp__fmp__getEmployeeCount": 3,
+        "mcp__fmp__getIncomeStatementGrowth": 3,
+        "mcp__fmp__getBalanceSheetStatementTTM": 2,
+        "mcp__fmp__getEarningsCalendar": 2,
+        "mcp__fmp__getHistoricalMarketCap": 2,
+        "mcp__fmp__getQuoteShort": 2,
+        "mcp__fmp__getRatingsSnapshot": 2,
+        "mcp__fmp__getBalanceSheetStatementGrowth": 1,
+        "mcp__fmp__getBatchMarketCap": 1,
+        "mcp__fmp__getCashFlowStatementGrowth": 1,
+        "mcp__fmp__getLeveredDCFValuation": 1,
+        "mcp__fmp__getRevenueGeographicSegmentation": 1,
+        "mcp__fmp__getRevenueProductSegmentation": 1
+      },
+      "recommendation": "caution",
+      "behavioral_notes": [
+        "Core quote, profile, and financial statement endpoints were often usable, but many analytics and TTM endpoints had materially higher failure rates. Multi-call workflows can degrade quickly when one request fails and sibling calls are aborted.",
+        "Rate limits and access-tier responses were common in heavier runs. This server is workable for selective calls, but batch-heavy analysis benefits from throttling and endpoint fallback."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "Frequent 402/429 responses from market data endpoints.",
+          "likely_cause": "Quota, access-tier, or burst-rate limits during multi-request workflows.",
+          "recovery": "Throttle requests, reduce endpoint fan-out, and prioritize lower-error baseline endpoints first.",
+          "frequency": "frequent"
+        },
+        {
+          "symptom": "Validation errors on period/limit arguments.",
+          "likely_cause": "Parameter enums and numeric types differ across endpoints.",
+          "recovery": "Validate each endpoint argument schema before issuing batches.",
+          "frequency": "occasional"
+        }
+      ]
+    },
+    {
+      "server_name": "claude-in-chrome",
+      "tools_reviewed": [
+        "mcp__claude-in-chrome__computer",
+        "mcp__claude-in-chrome__javascript_tool",
+        "mcp__claude-in-chrome__read_page",
+        "mcp__claude-in-chrome__tabs_context_mcp",
+        "mcp__claude-in-chrome__navigate",
+        "mcp__claude-in-chrome__find",
+        "mcp__claude-in-chrome__read_network_requests",
+        "mcp__claude-in-chrome__read_console_messages",
+        "mcp__claude-in-chrome__browser_click",
+        "mcp__claude-in-chrome__tabs_create_mcp",
+        "mcp__claude-in-chrome__browser_snapshot",
+        "mcp__claude-in-chrome__form_input",
+        "mcp__claude-in-chrome__get_page_text"
+      ],
+      "usage_counts": {
+        "mcp__claude-in-chrome__computer": 319,
+        "mcp__claude-in-chrome__javascript_tool": 42,
+        "mcp__claude-in-chrome__read_page": 27,
+        "mcp__claude-in-chrome__tabs_context_mcp": 27,
+        "mcp__claude-in-chrome__navigate": 22,
+        "mcp__claude-in-chrome__find": 18,
+        "mcp__claude-in-chrome__read_network_requests": 9,
+        "mcp__claude-in-chrome__read_console_messages": 4,
+        "mcp__claude-in-chrome__browser_click": 3,
+        "mcp__claude-in-chrome__tabs_create_mcp": 3,
+        "mcp__claude-in-chrome__browser_snapshot": 1,
+        "mcp__claude-in-chrome__form_input": 1,
+        "mcp__claude-in-chrome__get_page_text": 1
+      },
+      "recommendation": "caution",
+      "behavioral_notes": [
+        "Interactive browsing actions were generally stable for repeated read-click-screenshot loops. Context and tab inspection helpers were especially reliable when keeping to regular web pages.",
+        "Failures concentrated around stale element references, detached sessions, extension-protected pages, and occasional missing tool registration. Recovery usually succeeded by refreshing context and rerunning with fresh references."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "Click/snapshot fails due to inaccessible extension page or detached session.",
+          "likely_cause": "Browser context changed or target moved to a protected/internal page.",
+          "recovery": "Return to a standard web tab, refresh context snapshot, then re-run with current refs.",
+          "frequency": "occasional"
+        },
+        {
+          "symptom": "Tool reports unavailable or ref not found.",
+          "likely_cause": "Server toolset mismatch or stale reference after page mutation.",
+          "recovery": "List available tools/context again and reacquire references before acting.",
+          "frequency": "occasional"
+        }
+      ]
+    },
+    {
+      "server_name": "plugin_Notion_notion",
+      "tools_reviewed": [
+        "mcp__plugin_Notion_notion__notion-update-page",
+        "mcp__plugin_Notion_notion__notion-fetch",
+        "mcp__plugin_Notion_notion__notion-search",
+        "mcp__plugin_Notion_notion__notion-create-pages",
+        "mcp__plugin_Notion_notion__notion-get-comments",
+        "mcp__plugin_Notion_notion__notion-query-database-view"
+      ],
+      "usage_counts": {
+        "mcp__plugin_Notion_notion__notion-update-page": 42,
+        "mcp__plugin_Notion_notion__notion-fetch": 26,
+        "mcp__plugin_Notion_notion__notion-search": 18,
+        "mcp__plugin_Notion_notion__notion-create-pages": 13,
+        "mcp__plugin_Notion_notion__notion-get-comments": 5,
+        "mcp__plugin_Notion_notion__notion-query-database-view": 3
+      },
+      "recommendation": "caution",
+      "behavioral_notes": [
+        "Page fetch/update flows were productive once identifiers and document structure were explicit. The server gave deterministic validation responses, which made corrective retries straightforward.",
+        "Errors were mostly strict input-shape checks and unsupported URL/view formats rather than silent failures. Complex pattern-based updates are workable but should be scoped narrowly to avoid ambiguous matches."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "400 validation errors for URLs, IDs, or pattern targeting.",
+          "likely_cause": "Invalid resource format, unsupported view URL, or ambiguous pattern match.",
+          "recovery": "Normalize resource IDs/URLs first and narrow update patterns to a unique match.",
+          "frequency": "occasional"
+        },
+        {
+          "symptom": "Query-database-view path fails consistently.",
+          "likely_cause": "Tool expects a specific view/data-source format not satisfied by input.",
+          "recovery": "Use direct page/data-source retrieval and search tools to resolve canonical IDs before query.",
+          "frequency": "frequent"
+        }
+      ]
+    },
+    {
+      "server_name": "paper",
+      "tools_reviewed": [
+        "mcp__paper__write_html",
+        "mcp__paper__get_screenshot",
+        "mcp__paper__get_children",
+        "mcp__paper__get_computed_styles",
+        "mcp__paper__get_node_info",
+        "mcp__paper__update_styles",
+        "mcp__paper__delete_nodes",
+        "mcp__paper__finish_working_on_nodes",
+        "mcp__paper__get_basic_info",
+        "mcp__paper__create_artboard",
+        "mcp__paper__get_font_family_info",
+        "mcp__paper__get_selection",
+        "mcp__paper__rename_nodes"
+      ],
+      "usage_counts": {
+        "mcp__paper__write_html": 42,
+        "mcp__paper__get_screenshot": 11,
+        "mcp__paper__get_children": 7,
+        "mcp__paper__get_computed_styles": 6,
+        "mcp__paper__get_node_info": 3,
+        "mcp__paper__update_styles": 3,
+        "mcp__paper__delete_nodes": 2,
+        "mcp__paper__finish_working_on_nodes": 2,
+        "mcp__paper__get_basic_info": 2,
+        "mcp__paper__create_artboard": 1,
+        "mcp__paper__get_font_family_info": 1,
+        "mcp__paper__get_selection": 1,
+        "mcp__paper__rename_nodes": 1
+      },
+      "recommendation": "recommended",
+      "behavioral_notes": [
+        "Canvas authoring workflows were reliable across iterative write and screenshot cycles. Incremental edits with targeted style updates consistently produced predictable results.",
+        "Observed failures were limited to argument-shape mismatches on style inspection calls. Once argument shape was corrected, operations resumed without broader instability."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "Style inspection call rejects input schema.",
+          "likely_cause": "Expected array/object shape does not match provided parameters.",
+          "recovery": "Re-check tool schema and resend request with the exact parameter structure.",
+          "frequency": "rare"
+        }
+      ]
+    },
+    {
+      "server_name": "firecrawl",
+      "tools_reviewed": [
+        "mcp__firecrawl__firecrawl_scrape",
+        "mcp__firecrawl__firecrawl_search"
+      ],
+      "usage_counts": {
+        "mcp__firecrawl__firecrawl_scrape": 64,
+        "mcp__firecrawl__firecrawl_search": 6
+      },
+      "recommendation": "caution",
+      "behavioral_notes": [
+        "Search and scrape flows worked for most standard pages and returned useful extraction output when request shape was correct. Reliability was acceptable for moderate crawling tasks.",
+        "Failures clustered around strict parameter typing and occasional upstream fetch/proxy tunnel errors. Retries and simpler format requests usually restored progress."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "Scrape call fails validation for formats/inputs.",
+          "likely_cause": "Request payload type differs from tool schema.",
+          "recovery": "Send explicitly typed arrays/fields that match the published schema exactly.",
+          "frequency": "occasional"
+        },
+        {
+          "symptom": "Scrape fails with tunnel/proxy load error.",
+          "likely_cause": "Transient upstream networking issue while loading target URL.",
+          "recovery": "Retry after short delay or reattempt with a reduced/alternate target URL.",
+          "frequency": "rare"
+        }
+      ]
+    },
+    {
+      "server_name": "groundeffect",
+      "tools_reviewed": [
+        "mcp__groundeffect__search_emails",
+        "mcp__groundeffect__get_conversation",
+        "mcp__groundeffect__get_email",
+        "mcp__groundeffect__list_emails",
+        "mcp__groundeffect__manage_accounts",
+        "mcp__groundeffect__manage_daemon",
+        "mcp__groundeffect__manage_sync",
+        "mcp__groundeffect__get_thread",
+        "mcp__groundeffect__send_email"
+      ],
+      "usage_counts": {
+        "mcp__groundeffect__search_emails": 28,
+        "mcp__groundeffect__get_conversation": 6,
+        "mcp__groundeffect__get_email": 4,
+        "mcp__groundeffect__list_emails": 4,
+        "mcp__groundeffect__manage_accounts": 4,
+        "mcp__groundeffect__manage_daemon": 4,
+        "mcp__groundeffect__manage_sync": 3,
+        "mcp__groundeffect__get_thread": 2,
+        "mcp__groundeffect__send_email": 1
+      },
+      "recommendation": "caution",
+      "behavioral_notes": [
+        "Email search, listing, and account/sync management tools were stable and useful for operational triage. Retrieval workflows were dependable when using currently supported tool names.",
+        "One conversation-read path repeatedly failed due to unavailable tool naming, indicating version drift or removed functionality. Prefer thread/email retrieval paths that are actively exposed."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "Conversation retrieval tool returns no-such-tool errors.",
+          "likely_cause": "Tool name/version mismatch between expected and available server surface.",
+          "recovery": "List available tools and switch to supported thread/email retrieval equivalents.",
+          "frequency": "frequent"
+        }
+      ]
+    },
+    {
+      "server_name": "instant-domain-search",
+      "tools_reviewed": [
+        "mcp__instant-domain-search__search_domains",
+        "mcp__instant-domain-search__check_domain_availability",
+        "mcp__instant-domain-search__generate_domain_variations"
+      ],
+      "usage_counts": {
+        "mcp__instant-domain-search__search_domains": 29,
+        "mcp__instant-domain-search__check_domain_availability": 14,
+        "mcp__instant-domain-search__generate_domain_variations": 2
+      },
+      "recommendation": "recommended",
+      "behavioral_notes": [
+        "Domain search and availability checks were consistently fast and deterministic across repeated runs. The variation generator also behaved predictably and chained well with availability checks.",
+        "No recurring failures were observed in sampled sessions. This server is a strong default for iterative naming exploration workflows."
+      ],
+      "failure_modes": []
+    },
+    {
+      "server_name": "plugin_playwright_playwright",
+      "tools_reviewed": [
+        "mcp__plugin_playwright_playwright__browser_navigate",
+        "mcp__plugin_playwright_playwright__browser_take_screenshot",
+        "mcp__plugin_playwright_playwright__browser_file_upload",
+        "mcp__plugin_playwright_playwright__browser_network_requests",
+        "mcp__plugin_playwright_playwright__browser_snapshot"
+      ],
+      "usage_counts": {
+        "mcp__plugin_playwright_playwright__browser_navigate": 6,
+        "mcp__plugin_playwright_playwright__browser_take_screenshot": 4,
+        "mcp__plugin_playwright_playwright__browser_file_upload": 2,
+        "mcp__plugin_playwright_playwright__browser_network_requests": 1,
+        "mcp__plugin_playwright_playwright__browser_snapshot": 1
+      },
+      "recommendation": "caution",
+      "behavioral_notes": [
+        "Navigation, snapshot, and screenshot actions generally worked for web URLs and gave clear browser-state visibility. The server is useful when scripted browser checks are needed inside a constrained workflow.",
+        "Most failures came from context requirements around file upload modals and blocked local file protocols. Success depends on respecting browser security constraints and modal lifecycle state."
+      ],
+      "failure_modes": [
+        {
+          "symptom": "File upload tool fails because no modal state is active.",
+          "likely_cause": "Upload called before a file chooser is opened.",
+          "recovery": "Trigger upload control first, then call file upload while modal is active.",
+          "frequency": "occasional"
+        },
+        {
+          "symptom": "Navigation to local file URL is blocked.",
+          "likely_cause": "Server allows only web-safe protocols.",
+          "recovery": "Serve local content over an allowed protocol (http/https) before navigating.",
+          "frequency": "occasional"
+        }
+      ]
+    },
+    {
+      "server_name": "plugin_context7_context7",
+      "tools_reviewed": [
+        "mcp__plugin_context7_context7__query-docs",
+        "mcp__plugin_context7_context7__resolve-library-id"
+      ],
+      "usage_counts": {
+        "mcp__plugin_context7_context7__query-docs": 3,
+        "mcp__plugin_context7_context7__resolve-library-id": 3
+      },
+      "recommendation": "recommended",
+      "behavioral_notes": [
+        "Library resolution followed by targeted documentation queries worked cleanly in sampled usage. The two-step flow is predictable and easy to operationalize in technical research tasks.",
+        "Volume is lower than other servers, but observed calls completed without errors and returned actionable references. Reliability looks strong for scoped documentation retrieval."
+      ],
+      "failure_modes": []
+    }
+  ]
+}

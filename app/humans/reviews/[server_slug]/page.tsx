@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStaleness } from "@/lib/reviews";
-import { getReviewBySlug } from "@/lib/review-db";
+import { getReviewByServerSlug } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +21,9 @@ function confBadgeClass(conf: string) {
 export default async function HumanReviewDetailPage({
   params
 }: {
-  params: { tool_slug: string };
+  params: { server_slug: string };
 }) {
-  const review = await getReviewBySlug(params.tool_slug);
+  const review = await getReviewByServerSlug(params.server_slug);
   if (!review) {
     notFound();
   }
@@ -210,7 +210,7 @@ export default async function HumanReviewDetailPage({
               programmatically:
             </p>
             <pre className="code" style={{ marginTop: 6 }}>
-              {`GET https://toolspec.dev/api/reviews/${review.tool_slug}.json`}
+              {`GET https://toolspec.dev/api/reviews/${review.server_slug}.json`}
             </pre>
           </div>
         </div>

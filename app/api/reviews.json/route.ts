@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   const reviews = allReviews.map((review) => {
     const staleness = getStaleness(review.last_contribution_utc, now);
     return {
-      tool_slug: review.tool_slug,
+      server_slug: review.server_slug,
       tool_name: review.tool_name,
       category: review.category,
       recommendation: review.recommendation,
@@ -95,7 +95,7 @@ export async function GET(request: Request) {
       last_contribution_utc: review.last_contribution_utc,
       stale: staleness.stale,
       last_verified_utc: review.last_verified_utc,
-      detail_url: `/api/reviews/${review.tool_slug}.json`
+      detail_url: `/api/reviews/${review.server_slug}.json`
     };
   });
 
@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     reviews,
     contribution_prompt: mostAtRisk
       ? buildContributionPrompt(
-          mostAtRisk.tool_slug,
+          mostAtRisk.server_slug,
           mostAtRisk.contributor_count,
           mostAtRisk.stale,
           request.headers,

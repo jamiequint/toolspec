@@ -2,7 +2,7 @@ import {
   buildContributionPrompt,
   getStaleness
 } from "@/lib/reviews";
-import { getInstallStatus, getReviewBySlug } from "@/lib/review-db";
+import { getInstallStatus, getReviewByServerSlug } from "@/lib/review-db";
 
 export const dynamic = "force-dynamic";
 
@@ -80,14 +80,14 @@ export async function GET(
     );
   }
 
-  const toolSlug = normalizeSlug(params.slug);
-  const review = await getReviewBySlug(toolSlug);
+  const serverSlug = normalizeSlug(params.slug);
+  const review = await getReviewByServerSlug(serverSlug);
 
   if (!review) {
     return Response.json(
       {
         error: "not_found",
-        message: `No review found for tool slug '${toolSlug}'`
+        message: `No review found for server slug '${serverSlug}'`
       },
       { status: 404 }
     );
@@ -95,7 +95,7 @@ export async function GET(
 
   const staleness = getStaleness(review.last_contribution_utc);
   const contributionPrompt = buildContributionPrompt(
-    review.tool_slug,
+    review.server_slug,
     review.contributor_count,
     staleness.stale,
     request.headers
@@ -131,7 +131,7 @@ export async function GET(
   }
 
   const reviewPayload: Record<string, unknown> = {
-    tool_slug: review.tool_slug,
+    server_slug: review.server_slug,
     tool_name: review.tool_name,
     recommendation: review.recommendation,
     confidence: review.confidence,

@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-03-03T03:52:49.780Z",
+  "files_scanned": 769,
+  "servers": [
+    {
+      "server_name": "bigquery",
+      "total_calls": 821,
+      "total_tools": 5,
+      "recommendation": "recommended"
+    },
+    {
+      "server_name": "fmp",
+      "total_calls": 634,
+      "total_tools": 42,
+      "recommendation": "caution"
+    },
+    {
+      "server_name": "claude-in-chrome",
+      "total_calls": 477,
+      "total_tools": 13,
+      "recommendation": "caution"
+    },
+    {
+      "server_name": "plugin_Notion_notion",
+      "total_calls": 107,
+      "total_tools": 6,
+      "recommendation": "caution"
+    },
+    {
+      "server_name": "paper",
+      "total_calls": 82,
+      "total_tools": 13,
+      "recommendation": "recommended"
+    },
+    {
+      "server_name": "firecrawl",
+      "total_calls": 70,
+      "total_tools": 2,
+      "recommendation": "caution"
+    },
+    {
+      "server_name": "groundeffect",
+      "total_calls": 56,
+      "total_tools": 9,
+      "recommendation": "caution"
+    },
+    {
+      "server_name": "instant-domain-search",
+      "total_calls": 45,
+      "total_tools": 3,
+      "recommendation": "recommended"
+    },
+    {
+      "server_name": "plugin_playwright_playwright",
+      "total_calls": 14,
+      "total_tools": 5,
+      "recommendation": "caution"
+    },
+    {
+      "server_name": "plugin_context7_context7",
+      "total_calls": 6,
+      "total_tools": 2,
+      "recommendation": "recommended"
+    }
+  ]
+}

@@ -58,7 +58,7 @@ const WRAPPER_PATH =
 
 function usage() {
   console.log(
-    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec review\n  toolspec search <keyword>\n  toolspec submit --all --review-file <path>\n  toolspec submit --all --review-json '<json>'\n  toolspec submit --servers <list> --review-json '<json>'\n  toolspec uninstall"
+    "ToolSpec CLI\n\nCommands:\n  toolspec install\n  toolspec status\n  toolspec verify\n  toolspec review\n  toolspec search <keyword>\n  toolspec recommend <what_you_need>\n  toolspec submit --all --review-file <path>\n  toolspec submit --all --review-json '<json>'\n  toolspec submit --servers <list> --review-json '<json>'\n  toolspec uninstall"
   );
 }
 
@@ -68,7 +68,7 @@ const TOKEN_LIKE_REGEX =
 const SENSITIVE_WORD_REGEX =
   /(token|secret|password|passwd|api[_-]?key|access[_-]?key|client[_-]?secret|authorization|bearer|cookie)/i;
 const LONG_ID_REGEX = /[a-z0-9_-]{16,}/i;
-const ALLOWED_TOOL_SLUG_CHARS_REGEX = /^[a-z0-9._:/-]+$/;
+const ALLOWED_SERVER_SLUG_CHARS_REGEX = /^[a-z0-9._:/-]+$/;
 
 function canonicalizeToolName(rawName) {
   let normalized = String(rawName || "").trim().toLowerCase();
@@ -92,7 +92,7 @@ function canonicalizeToolName(rawName) {
 
   // Drop suspicious identifiers before any submission payload is generated.
   if (
-    !ALLOWED_TOOL_SLUG_CHARS_REGEX.test(normalized)
+    !ALLOWED_SERVER_SLUG_CHARS_REGEX.test(normalized)
     || EMAIL_LIKE_REGEX.test(normalized)
     || TOKEN_LIKE_REGEX.test(normalized)
     || /https?:\/\//i.test(normalized)
@@ -469,7 +469,7 @@ function sanitizeServerName(rawName) {
     return null;
   }
   if (
-    !ALLOWED_TOOL_SLUG_CHARS_REGEX.test(normalized)
+    !ALLOWED_SERVER_SLUG_CHARS_REGEX.test(normalized)
     || EMAIL_LIKE_REGEX.test(normalized)
     || TOKEN_LIKE_REGEX.test(normalized)
     || /https?:\/\//i.test(normalized)
@@ -560,7 +560,7 @@ function buildServerPayload({ installId, now, token, serverReview, agentModel })
   return {
     install_id: installId,
     submission_scope: "single_tool",
-    tool_slug: serverReview.serverName,
+    server_slug: serverReview.serverName,
     agent_model: agentModel,
     review_window_start_utc: now,
     review_window_end_utc: now,
@@ -776,6 +776,7 @@ async function runStatus() {
   if (state.approved_at_utc && searchUnlocked) {
     console.log(`Approval status: approved at ${state.approved_at_utc}`);
     console.log("Search enabled: toolspec search <keyword>");
+    console.log("Recommendations enabled: toolspec recommend <what_you_need>");
   } else if (state.approved_at_utc) {
     console.log(`Approval status: approved at ${state.approved_at_utc}`);
     console.log("Search becomes available after contributing a review.");
@@ -816,7 +817,7 @@ function normalizeSearchText(value) {
 
 function matchesKeyword(reviewRow, keywordLower) {
   const fields = [
-    reviewRow.tool_slug,
+    reviewRow.server_slug,
     reviewRow.tool_name,
     reviewRow.category,
     reviewRow.recommendation,
@@ -827,12 +828,7 @@ function matchesKeyword(reviewRow, keywordLower) {
   return fields.some((field) => normalizeSearchText(field).includes(keywordLower));
 }
 
-async function runSearch(args) {
-  const keyword = args.join(" ").trim();
-  if (!keyword) {
-    throw new Error("Usage: toolspec search <keyword>");
-  }
-
+async function ensureReadAccess() {
   const state = await readState();
   if (!state.approved_at_utc) {
     throw new Error("Activation required before search. Run `toolspec review` first.");
@@ -859,6 +855,17 @@ async function runSearch(args) {
     );
   }
 
+  return { installId };
+}
+
+async function runSearch(args) {
+  const keyword = args.join(" ").trim();
+  if (!keyword) {
+    throw new Error("Usage: toolspec search <keyword>");
+  }
+
+  await ensureReadAccess();
+
   const payload = await requestJson("GET", "/api/reviews.json");
   const rows = Array.isArray(payload?.reviews) ? payload.reviews : [];
   const keywordLower = keyword.toLowerCase();
@@ -874,12 +881,46 @@ async function runSearch(args) {
   for (const row of matches.slice(0, 25)) {
     const errorPct = typeof row.error_rate === "number" ? `${(row.error_rate * 100).toFixed(1)}%` : "n/a";
     console.log(
-      `- ${row.tool_slug} | ${row.tool_name} | ${row.recommendation}/${row.confidence} | error ${errorPct} | ${row.detail_url}`
+      `- ${row.server_slug} | ${row.tool_name} | ${row.recommendation}/${row.confidence} | error ${errorPct} | ${row.detail_url}`
     );
   }
 
   if (matches.length > 25) {
     console.log(`Showing first 25 of ${matches.length} results.`);
+  }
+}
+
+async function runRecommend(args) {
+  const query = args.join(" ").trim();
+  if (!query) {
+    throw new Error("Usage: toolspec recommend <what_you_need>");
+  }
+
+  const { installId } = await ensureReadAccess();
+  const params = new URLSearchParams({ q: query });
+  if (typeof installId === "string" && installId.length > 0) {
+    params.set("install_id", installId);
+  }
+
+  const payload = await requestJson("GET", `/api/v1/recommendations?${params.toString()}`);
+  const rows = Array.isArray(payload?.recommendations) ? payload.recommendations : [];
+  if (rows.length === 0) {
+    console.log(`No recommendations found for '${query}'.`);
+    return;
+  }
+
+  console.log(`Recommendations for '${query}' (${payload?.mode || "hybrid"}):`);
+  for (const row of rows) {
+    const score = typeof row.score === "number" ? row.score.toFixed(3) : "n/a";
+    const ratio = typeof row?.signals?.recommended_ratio === "number"
+      ? `${(row.signals.recommended_ratio * 100).toFixed(0)}%`
+      : "n/a";
+    console.log(
+      `- ${row.server_slug} | ${row.tool_name} | score ${score} | recommended ${ratio} | ${row.detail_url}`
+    );
+    if (Array.isArray(row.rationale) && row.rationale.length > 0) {
+      console.log(`  reasons: ${row.rationale.join(", ")}`);
+    }
   }
 }
 
@@ -1061,6 +1102,9 @@ async function main() {
       return;
     case "search":
       await runSearch(args);
+      return;
+    case "recommend":
+      await runRecommend(args);
       return;
     case "submit":
       await runSubmit(args);

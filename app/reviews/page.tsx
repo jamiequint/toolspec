@@ -32,11 +32,11 @@ export default async function ReviewsPage() {
             {reviews.map((review) => {
               const staleness = getStaleness(review.last_contribution_utc, now);
               return (
-                <tr key={review.tool_slug}>
+                <tr key={review.server_slug}>
                   <td>
-                    <Link href={`/reviews/${review.tool_slug}`}>{review.tool_name}</Link>
+                    <Link href={`/reviews/${review.server_slug}`}>{review.tool_name}</Link>
                     <div className="small">
-                      <Link href={`/api/reviews/${review.tool_slug}.json`}>json</Link>
+                      <Link href={`/api/reviews/${review.server_slug}.json`}>json</Link>
                     </div>
                   </td>
                   <td>{review.confidence}</td>
